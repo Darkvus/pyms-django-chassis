@@ -1,0 +1,17 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+    <h2>Migrate data to another tenant</h2>
+    <p>Selected {{ queryset.count }} record(s).</p>
+    <label for="target_schema">Target schema:</label>
+    <input type="text" name="target_schema" id="target_schema" required>
+    <input type="hidden" name="action" value="{{ action_name }}">
+    {% for obj in queryset %}
+    <input type="hidden" name="_selected_action" value="{{ obj.pk }}">
+    {% endfor %}
+    <br><br>
+    <input type="submit" name="apply" value="Migrate" class="default">
+    <a href="../">Cancel</a>
+</form>
+{% endblock %}

@@ -1,0 +1,23 @@
+"""
+    pyms-django-chassis
+    Open-source Django microservice chassis
+"""
+from __future__ import annotations
+
+from typing import Any, Final
+
+HEADER_USER_ID_PARAM: Final[dict[str, Any]] = {
+    "name": "User-Id",
+    "in": "header",
+    "required": False,
+    "schema": {"type": "string", "format": "uuid"},
+    "description": "UUID of the authenticated user",
+}
+
+HEADER_APP_ID_PARAM: Final[dict[str, Any]] = {
+    "name": "App-Id",
+    "in": "header",
+    "required": False,
+    "schema": {"type": "string"},
+    "description": "Application identifier",
+}
