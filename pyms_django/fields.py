@@ -1,5 +1,2 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
-"""
+"""Custom Django model fields for pyms-django-chassis."""
 from __future__ import annotations

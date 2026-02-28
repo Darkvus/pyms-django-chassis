@@ -1,7 +1,4 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
-"""
+"""Django management command for scaffolding DDD folder structures."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -11,72 +8,143 @@ from django.core.management.base import BaseCommand, CommandParser
 
 
 def run_folderddd(module: str, actor: str | None = None) -> None:
-    """Generate DDD folder structure for a module."""
+    """Create a Domain-Driven Design folder structure for a module.
+
+    The Django app always lives at ``apps/{module}/`` (``apps.py``, ``migrations/``).
+    Each actor (e.g. ``usuario``, ``manager``, ``internal``) gets its own sub-folder
+    with full DDD layers. The special actor ``shared`` is created without an ``api/``
+    layer. Without an actor, all layers are created directly under ``apps/{module}/``.
+
+    Args:
+        module: Name of the module (aggregate root) to scaffold.
+        actor: Optional actor name. Creates ``apps/{module}/{actor}/`` with its own
+            ``api/``, ``application/``, ``domain/`` and ``infrastructure/`` layers.
+            Use ``shared`` for code shared across actors (no ``api/`` generated).
+    """
+    app_path = Path("apps") / module        # Django app root (apps.py, migrations)
+    app_name = f"apps.{module}"
+    app_class = "".join(word.capitalize() for word in module.replace("-", "_").split("_"))
+    app_label = module.replace("-", "_")
+
+    # Each actor owns all its DDD layers under apps/{module}/{actor}/.
+    # Without an actor the layers sit directly at the module root.
+    # "shared" is a reserved actor name that has no api/ layer.
     if actor:
-        base_path = Path("apps") / actor / module
+        ddd_root = app_path / actor
+        include_api = actor != "shared"
     else:
-        base_path = Path("apps") / module
+        ddd_root = app_path
+        include_api = True
 
     # Define the DDD directory structure
     directories: list[Path] = [
-        base_path / "api" / "v1",
-        base_path / "application" / "services",
-        base_path / "application" / "use_cases",
-        base_path / "domain",
-        base_path / "infrastructure" / "services",
-        base_path / "infrastructure" / "repositories",
+        app_path / "migrations",
+        ddd_root / "application" / "services",
+        ddd_root / "application" / "use_cases",
+        ddd_root / "domain",
+        ddd_root / "infrastructure" / "services",
+        ddd_root / "infrastructure" / "repositories",
     ]
+    if include_api:
+        directories.append(ddd_root / "api" / "v1")
 
     # Create all directories
     for directory in directories:
         directory.mkdir(parents=True, exist_ok=True)
 
-    # Define files to create with their content
+    # ── Django app boilerplate (always at app_path) ───────────────────
     files: dict[Path, str] = {
-        # API layer
-        base_path / "api" / "__init__.py": "",
-        base_path / "api" / "v1" / "__init__.py": "",
-        base_path / "api" / "v1" / "serializers.py": f'"""\n    Serializers for {module} API v1.\n"""\nfrom __future__ import annotations\n',
-        base_path / "api" / "v1" / "urls.py": f'"""\n    URL configuration for {module} API v1.\n"""\nfrom __future__ import annotations\n\nfrom django.urls import URLPattern, path\n\nurlpatterns: list[URLPattern] = []\n',
-        base_path / "api" / "v1" / "views.py": f'"""\n    Views for {module} API v1.\n"""\nfrom __future__ import annotations\n',
-        # Application layer
-        base_path / "application" / "__init__.py": "",
-        base_path / "application" / "services" / "__init__.py": "",
-        base_path / "application" / "services" / "dtos.py": f'"""\n    DTOs for {module} application services.\n"""\nfrom __future__ import annotations\n',
-        base_path / "application" / "services" / f"{module}_service.py": f'"""\n    Service for {module}.\n"""\nfrom __future__ import annotations\n',
-        base_path / "application" / "use_cases" / "__init__.py": "",
-        base_path / "application" / "use_cases" / "dtos.py": f'"""\n    DTOs for {module} use cases.\n"""\nfrom __future__ import annotations\n',
-        base_path / "application" / "use_cases" / f"{module}_use_case.py": f'"""\n    Use case for {module}.\n"""\nfrom __future__ import annotations\n',
-        # Domain layer
-        base_path / "domain" / "__init__.py": "",
-        base_path / "domain" / "aggregates.py": f'"""\n    Aggregates for {module} domain.\n"""\nfrom __future__ import annotations\n',
-        base_path / "domain" / "entities.py": f'"""\n    Entities for {module} domain.\n"""\nfrom __future__ import annotations\n',
-        base_path / "domain" / "value_objects.py": f'"""\n    Value objects for {module} domain.\n"""\nfrom __future__ import annotations\n',
-        base_path / "domain" / "repositories.py": f'"""\n    Repository interfaces for {module} domain.\n"""\nfrom __future__ import annotations\n',
-        # Infrastructure layer
-        base_path / "infrastructure" / "__init__.py": "",
-        base_path / "infrastructure" / "services" / "__init__.py": "",
-        base_path / "infrastructure" / "repositories" / "__init__.py": "",
+        Path("apps") / "__init__.py": "",
+        app_path / "__init__.py": "",
+        app_path / "apps.py": (
+            f'"""\n    AppConfig for {module}.\n"""\n'
+            "from __future__ import annotations\n\n"
+            "from django.apps import AppConfig\n\n\n"
+            f"class {app_class}Config(AppConfig):\n"
+            '    default_auto_field = "django.db.models.BigAutoField"\n'
+            f'    name = "{app_name}"\n'
+            f'    label = "{app_label}"\n'
+        ),
+        app_path / "migrations" / "__init__.py": "",
+        # ── DDD root package ──────────────────────────────────────────
+        ddd_root / "__init__.py": "",
+        # ── Application layer ─────────────────────────────────────────
+        ddd_root / "application" / "__init__.py": "",
+        ddd_root / "application" / "services" / "__init__.py": "",
+        ddd_root / "application" / "services" / "dtos.py": f'"""\n    DTOs for {module} application services.\n"""\nfrom __future__ import annotations\n',
+        ddd_root / "application" / "services" / f"{module}_service.py": f'"""\n    Service for {module}.\n"""\nfrom __future__ import annotations\n',
+        ddd_root / "application" / "use_cases" / "__init__.py": "",
+        ddd_root / "application" / "use_cases" / "dtos.py": f'"""\n    DTOs for {module} use cases.\n"""\nfrom __future__ import annotations\n',
+        ddd_root / "application" / "use_cases" / f"{module}_use_case.py": f'"""\n    Use case for {module}.\n"""\nfrom __future__ import annotations\n',
+        # ── Domain layer ──────────────────────────────────────────────
+        ddd_root / "domain" / "__init__.py": "",
+        ddd_root / "domain" / "aggregates.py": f'"""\n    Aggregates for {module} domain.\n"""\nfrom __future__ import annotations\n',
+        ddd_root / "domain" / "entities.py": f'"""\n    Entities for {module} domain.\n"""\nfrom __future__ import annotations\n',
+        ddd_root / "domain" / "value_objects.py": f'"""\n    Value objects for {module} domain.\n"""\nfrom __future__ import annotations\n',
+        ddd_root / "domain" / "repositories.py": f'"""\n    Repository interfaces for {module} domain.\n"""\nfrom __future__ import annotations\n',
+        # ── Infrastructure layer ──────────────────────────────────────
+        ddd_root / "infrastructure" / "__init__.py": "",
+        ddd_root / "infrastructure" / "models.py": (
+            f'"""\n    Django ORM models for {module}.\n"""\n'
+            "from __future__ import annotations\n\n"
+            "from pyms_django.models import BaseModel\n\n\n"
+            f"class {app_class}(BaseModel):\n"
+            f'    """{app_class} model.\n\n    Add your fields here.\n    """\n\n'
+            "    class Meta:\n"
+            f'        app_label = "{app_label}"\n'
+            f'        db_table = "{app_label}"\n'
+            f'        verbose_name = "{app_label.replace("_", " ")}"\n'
+            f'        verbose_name_plural = "{app_label.replace("_", " ")}"\n\n'
+            "    def __str__(self) -> str:\n"
+            f'        return f"{app_class}({{self.pk}})"\n'
+        ),
+        ddd_root / "infrastructure" / "services" / "__init__.py": "",
+        ddd_root / "infrastructure" / "repositories" / "__init__.py": "",
     }
+
+    # ── API layer (absent for "shared") ───────────────────────────────
+    if include_api:
+        files.update({
+            ddd_root / "api" / "__init__.py": "",
+            ddd_root / "api" / "v1" / "__init__.py": "",
+            ddd_root / "api" / "v1" / "serializers.py": f'"""\n    Serializers for {module} API v1.\n"""\nfrom __future__ import annotations\n',
+            ddd_root / "api" / "v1" / "urls.py": f'"""\n    URL configuration for {module} API v1.\n"""\nfrom __future__ import annotations\n\nfrom django.urls import URLPattern, path\n\nurlpatterns: list[URLPattern] = []\n',
+            ddd_root / "api" / "v1" / "views.py": f'"""\n    Views for {module} API v1.\n"""\nfrom __future__ import annotations\n',
+        })
 
     for file_path, content in files.items():
         if not file_path.exists():
             file_path.write_text(content, encoding="utf-8")
 
-    location = f"apps/{actor}/{module}" if actor else f"apps/{module}"
+    if actor:
+        suffix = " (no api — shared layer)" if not include_api else ""
+        location = f"apps/{module}/{actor}{suffix}"
+    else:
+        location = f"apps/{module}"
     print(f"DDD structure created at: {location}")  # noqa: T201
 
 
 class Command(BaseCommand):
-    """Django management command to generate DDD folder structure."""
+    """Management command that generates a DDD folder structure for a module."""
 
     help = "Generate DDD folder structure for a module"
 
     def add_arguments(self, parser: CommandParser) -> None:
+        """Register the ``module`` and optional ``--actor`` CLI arguments.
+
+        Args:
+            parser: The argument parser provided by Django's management framework.
+        """
         parser.add_argument("module", type=str, help="Name of the module (aggregate root)")
         parser.add_argument("--actor", type=str, default=None, help="Name of the actor (optional)")
 
     def handle(self, *args: Any, **options: Any) -> None:
+        """Execute the command.
+
+        Args:
+            *args: Unused positional arguments.
+            **options: Parsed CLI options, including ``module`` and ``actor``.
+        """
         module: str = options["module"]
         actor: str | None = options.get("actor")
         run_folderddd(module, actor)

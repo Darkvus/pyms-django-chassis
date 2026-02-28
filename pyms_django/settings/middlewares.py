@@ -1,7 +1,4 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
-"""
+"""Shared middleware stack for pyms-django-chassis projects."""
 from __future__ import annotations
 
 from typing import Final

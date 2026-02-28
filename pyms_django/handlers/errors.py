@@ -1,6 +1,7 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
+"""Custom DRF exception handler for pyms-django-chassis.
+
+Converts ``DomainException``, DRF exceptions, and unexpected errors into a
+standardised JSON error response with an optional OpenTelemetry trace ID.
 """
 from __future__ import annotations
 
@@ -27,7 +28,11 @@ STATUS_MAP: dict[TypeException, int] = {
 
 
 def get_trace_id() -> str:
-    """Get the trace ID from the current OpenTelemetry span."""
+    """Return the current OpenTelemetry trace ID as a hex string.
+
+    Returns:
+        Trace ID hex string, or an empty string if tracing is unavailable.
+    """
     try:
         from opentelemetry import trace
         span = trace.get_current_span()
@@ -42,7 +47,15 @@ def get_trace_id() -> str:
 
 
 def process_error_message(field: str, errors: Any) -> dict[str, Any]:
-    """Process a single error field into standardized format."""
+    """Convert a single field's validation errors into a standardised dict.
+
+    Args:
+        field: Name of the field that failed validation.
+        errors: Error value(s) for the field.
+
+    Returns:
+        Standardised error dict with ``type``, ``field``, and ``details`` keys.
+    """
     if isinstance(errors, list):
         details = []
         for error in errors:
@@ -55,7 +68,14 @@ def process_error_message(field: str, errors: Any) -> dict[str, Any]:
 
 
 def process_errors(errors: Any) -> list[dict[str, Any]]:
-    """Process DRF validation errors into standardized message format."""
+    """Convert DRF validation error detail into a list of standardised dicts.
+
+    Args:
+        errors: DRF ``ValidationError.detail`` value (dict, list, or scalar).
+
+    Returns:
+        List of standardised error message dicts.
+    """
     messages: list[dict[str, Any]] = []
     if isinstance(errors, dict):
         for field_name, field_errors in errors.items():
@@ -82,7 +102,14 @@ def process_errors(errors: Any) -> list[dict[str, Any]]:
 
 
 def get_messages(exc: Exception) -> tuple[list[dict[str, Any]], int]:
-    """Extract messages and status code from an exception."""
+    """Extract a list of error messages and an HTTP status code from an exception.
+
+    Args:
+        exc: The exception to inspect.
+
+    Returns:
+        Tuple of ``(list of error message dicts, HTTP status code)``.
+    """
     if isinstance(exc, DomainException):
         http_status = STATUS_MAP.get(exc.type, status.HTTP_500_INTERNAL_SERVER_ERROR)
         messages = [asdict(msg) for msg in exc.messages]
@@ -111,7 +138,14 @@ def get_messages(exc: Exception) -> tuple[list[dict[str, Any]], int]:
 
 
 def _log_exception(exc: Exception) -> None:
-    """Log the exception using the appropriate log level."""
+    """Log the exception at the appropriate level.
+
+    Uses the ``log_level`` from ``DomainException`` instances, or
+    ``logger.exception`` for all other exception types.
+
+    Args:
+        exc: The exception to log.
+    """
     if isinstance(exc, DomainException):
         log_level = exc.log_level.value
         log_fn = getattr(logger, log_level, logger.exception)
@@ -121,7 +155,15 @@ def _log_exception(exc: Exception) -> None:
 
 
 def handle_response(messages: list[dict[str, Any]], http_status: int) -> Response:
-    """Format and return a standardized error response."""
+    """Build a standardised DRF ``Response`` for an error.
+
+    Args:
+        messages: List of standardised error message dicts.
+        http_status: HTTP status code for the response.
+
+    Returns:
+        DRF ``Response`` containing ``messages`` and the current ``trace_id``.
+    """
     trace_id = get_trace_id()
     return Response(
         {"messages": messages, "trace_id": trace_id},
@@ -130,9 +172,17 @@ def handle_response(messages: list[dict[str, Any]], http_status: int) -> Respons
 
 
 def custom_exception_handler(exc: Exception, context: dict[str, Any]) -> Response | None:
-    """
-    Custom exception handler for DRF.
-    Handles DomainException, DRF exceptions, and generic exceptions.
+    """DRF exception handler that returns a standardised error response.
+
+    Handles ``DomainException``, DRF ``APIException`` subclasses,
+    ``Http404``, and unexpected exceptions.
+
+    Args:
+        exc: The raised exception.
+        context: DRF handler context dict.
+
+    Returns:
+        DRF ``Response`` with a standardised error payload.
     """
     _log_exception(exc)
 

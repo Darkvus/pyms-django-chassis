@@ -1,7 +1,4 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
-"""
+"""Environment and cloud secret manager variable resolver for pyms-django-chassis."""
 from __future__ import annotations
 
 import os
@@ -11,13 +8,24 @@ SECRET_MANAGER_PREFIX: Final[str] = "ENC_"
 
 
 class ConfigVars:
-    """
-    Configuration variable resolver.
-    Variables prefixed with ENC_ are fetched from the cloud secret manager.
-    Others are fetched from environment variables.
+    """Resolver for environment and cloud secret manager variables.
+
+    Attributes starting with ``ENC_`` are fetched from the cloud secret
+    manager; all other attributes are read from environment variables.
     """
 
     def __getattr__(self, name: str) -> str:
+        """Resolve a configuration variable by name.
+
+        Args:
+            name: Variable name. Prefix with ``ENC_`` to fetch from the secret manager.
+
+        Returns:
+            The resolved string value.
+
+        Raises:
+            AttributeError: If a non-prefixed variable is absent from the environment.
+        """
         if name.startswith(SECRET_MANAGER_PREFIX):
             return self._get_from_secret_manager(name)
         value = os.environ.get(name)
@@ -27,7 +35,17 @@ class ConfigVars:
         return value
 
     def _get_from_secret_manager(self, name: str) -> str:
-        """Fetch a secret from the configured cloud secret manager."""
+        """Fetch a secret from the configured cloud provider.
+
+        Args:
+            name: Full variable name including the ``ENC_`` prefix.
+
+        Returns:
+            The plaintext secret value.
+
+        Raises:
+            ValueError: If ``SECRET_MANAGER_PROVIDER`` is set to an unsupported value.
+        """
         provider = os.environ.get("SECRET_MANAGER_PROVIDER", "AWS").upper()
         if provider == "AWS":
             from pyms_django.cloud.aws.secret_manager import AwsSecretManager

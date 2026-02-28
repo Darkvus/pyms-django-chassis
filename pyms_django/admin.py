@@ -1,7 +1,4 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
-"""
+"""Django admin mixins and utilities for pyms-django-chassis."""
 from __future__ import annotations
 
 import logging
@@ -16,14 +13,26 @@ logger = logging.getLogger(__name__)
 
 
 class MigrateModelAdminMixin:
-    """Admin mixin for migrating data between tenants."""
+    """Admin mixin that adds a bulk tenant-migration action."""
 
     def migrate_data_to_other_tenant(
         self,
         request: HttpRequest,
         queryset: QuerySet[Any],
     ) -> HttpResponse | TemplateResponse:
-        """Admin action to migrate selected records to another tenant."""
+        """Bulk admin action to copy selected records to another tenant schema.
+
+        Displays a confirmation template on GET; on POST with ``apply``,
+        copies the selected records to the target schema and resets the connection.
+
+        Args:
+            request: The current HTTP request.
+            queryset: The queryset of selected objects.
+
+        Returns:
+            A ``TemplateResponse`` for the confirmation form, or an ``HttpResponse``
+            redirect after migration.
+        """
         if request.POST.get("apply"):
             target_schema = request.POST.get("target_schema", "")
             if target_schema:
@@ -60,7 +69,15 @@ try:
         pass
 
     def modelresource_factory(model: type[Model], **kwargs: Any) -> type[ModelResource]:
-        """Factory to create ModelResource with use_bulk=True."""
+        """Create a ``ModelResource`` subclass with bulk operations enabled.
+
+        Args:
+            model: The Django model class to create a resource for.
+            **kwargs: Additional ``Meta`` attributes to set on the resource.
+
+        Returns:
+            A new ``ModelResource`` subclass with ``use_bulk=True``.
+        """
         meta_attrs: dict[str, Any] = {
             "model": model,
             "use_bulk": True,
@@ -79,6 +96,14 @@ except ImportError:
         pass
 
     def modelresource_factory(model: type[Model], **kwargs: Any) -> type:  # type: ignore[misc]
-        """Fallback factory when django-import-export is not installed."""
+        """Raise ``ImportError`` because ``django-import-export`` is not installed.
+
+        Args:
+            model: The Django model class.
+            **kwargs: Ignored.
+
+        Raises:
+            ImportError: Always, with installation instructions.
+        """
         msg = "django-import-export is required. Install with: pip install pyms-django-chassis[import-export]"
         raise ImportError(msg)

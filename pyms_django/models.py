@@ -1,6 +1,7 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
+"""Base Django models for pyms-django-chassis microservices.
+
+Provides soft-delete support, UUID primary keys, and timestamp fields
+via ``BaseModel`` and ``BaseModelReplicatedData``.
 """
 from __future__ import annotations
 
@@ -13,15 +14,28 @@ from django.db.models import QuerySet
 
 
 class SoftDeleteQuerySet(QuerySet["BaseModel"]):
-    """QuerySet that performs soft delete instead of hard delete."""
+    """QuerySet with soft-delete support.
+
+    Overrides ``delete`` to mark records as inactive instead of removing them.
+    """
 
     def delete(self) -> tuple[int, dict[str, int]]:  # type: ignore[override]
-        """Soft delete all records in the queryset."""
+        """Soft-delete all records in the queryset.
+
+        Sets ``active=False`` and records the deletion timestamp.
+
+        Returns:
+            Tuple of ``(count, {model_label: count})``.
+        """
         count = self.update(active=False, deleted_at=datetime.now(UTC))
         return count, {self.model._meta.label: count}
 
     def hard_delete(self) -> tuple[int, dict[str, int]]:
-        """Actually delete records from the database."""
+        """Permanently delete all records from the database.
+
+        Returns:
+            Tuple of ``(count, {model_label: count})``.
+        """
         return super().delete()
 
 
@@ -33,9 +47,18 @@ class ActiveItemManager(models.Manager["BaseModel"]):
 
 
 class BaseModel(models.Model):
-    """
-    Base model with UUID PK, timestamps, and soft delete support.
-    All microservice models should inherit from this.
+    """Abstract base model with UUID PK, timestamps, and soft-delete support.
+
+    All microservice models should inherit from this class.
+
+    Attributes:
+        id: UUID primary key, auto-generated on creation.
+        created_at: Timestamp set automatically when the record is created.
+        updated_at: Timestamp updated automatically on every save.
+        deleted_at: Timestamp set when the record is soft-deleted; ``None`` otherwise.
+        active: ``False`` when the record has been soft-deleted.
+        objects: Manager returning only active records.
+        all_objects: Unfiltered default manager.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -51,20 +74,42 @@ class BaseModel(models.Model):
         abstract = True
 
     def delete(self, using: str | None = None, keep_parents: bool = False) -> tuple[int, dict[str, int]]:  # type: ignore[override]
-        """Soft delete: mark as inactive instead of removing from DB."""
+        """Soft-delete the record by marking it as inactive.
+
+        Sets ``active=False`` and ``deleted_at`` to the current UTC time.
+        The record remains in the database.
+
+        Args:
+            using: Database alias to use for the save operation.
+            keep_parents: Present for API compatibility; not used.
+
+        Returns:
+            Tuple of ``(1, {model_label: 1})``.
+        """
         self.active = False
         self.deleted_at = datetime.now(UTC)
         self.save(update_fields=["active", "deleted_at", "updated_at"], using=using)
         return 1, {self._meta.label: 1}
 
     def restore(self) -> None:
-        """Restore a soft-deleted record."""
+        """Restore a previously soft-deleted record.
+
+        Sets ``active=True`` and clears ``deleted_at``.
+        """
         self.active = True
         self.deleted_at = None
         self.save(update_fields=["active", "deleted_at", "updated_at"])
 
     def hard_delete(self, using: str | None = None, keep_parents: bool = False) -> tuple[int, dict[str, int]]:
-        """Actually delete the record from the database."""
+        """Permanently delete the record from the database.
+
+        Args:
+            using: Database alias.
+            keep_parents: Whether to keep parent rows for multi-table inheritance.
+
+        Returns:
+            Tuple of ``(count, {model_label: count})``.
+        """
         return super().delete(using=using, keep_parents=keep_parents)
 
     @classmethod
@@ -77,7 +122,22 @@ class BaseModel(models.Model):
         update_fields: list[str] | None = None,
         unique_fields: list[str] | None = None,
     ) -> list[Any]:
-        """Override bulk_create to optionally send signals."""
+        """Bulk-create records, optionally emitting ``post_save`` signals.
+
+        Wraps Django's ``bulk_create`` and fires ``post_save`` for each created
+        instance when ``Meta.active_signals_bulk_operations`` is ``True``.
+
+        Args:
+            objs: List of model instances to create.
+            batch_size: Number of records per database query.
+            ignore_conflicts: Ignore uniqueness constraint violations.
+            update_conflicts: Update conflicting rows instead of ignoring.
+            update_fields: Fields to update on conflict (requires ``update_conflicts``).
+            unique_fields: Fields used to detect conflicts.
+
+        Returns:
+            List of created model instances.
+        """
         result = super().bulk_create(
             objs,
             batch_size=batch_size,
@@ -99,7 +159,19 @@ class BaseModel(models.Model):
         fields: list[str],
         batch_size: int | None = None,
     ) -> int:
-        """Override bulk_update to optionally send signals."""
+        """Bulk-update records, optionally emitting ``post_save`` signals.
+
+        Wraps Django's ``bulk_update`` and fires ``post_save`` for each updated
+        instance when ``Meta.active_signals_bulk_operations`` is ``True``.
+
+        Args:
+            objs: List of model instances to update.
+            fields: Names of fields to update in the database.
+            batch_size: Number of records per database query.
+
+        Returns:
+            Number of rows matched by the update.
+        """
         result = super().bulk_update(objs, fields, batch_size=batch_size)
         if getattr(cls._meta, "active_signals_bulk_operations", False):
             from django.db.models.signals import post_save
@@ -109,9 +181,10 @@ class BaseModel(models.Model):
 
 
 class BaseModelReplicatedData(BaseModel):
-    """
-    Base model for replicated data where the ID comes from an external source.
-    The id field has no default value.
+    """Abstract base model for records replicated from an external source.
+
+    The ``id`` field has no default value; it must be provided explicitly
+    (typically the UUID assigned by the upstream system).
     """
 
     id = models.UUIDField(primary_key=True, editable=False)

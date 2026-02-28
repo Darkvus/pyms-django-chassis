@@ -1,7 +1,4 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
-"""
+"""Multi-tenant Django models for pyms-django-chassis."""
 from __future__ import annotations
 
 from django.db import models
@@ -12,7 +9,7 @@ try:
     from django_tenants.models import DomainMixin, TenantMixin
 
     class Tenant(TenantMixin, BaseModel):  # type: ignore[misc]
-        """Multi-tenant model using PostgreSQL schemas."""
+        """Tenant model that maps to a dedicated PostgreSQL schema."""
 
         name = models.CharField(max_length=100)
         description = models.TextField(blank=True, default="")
@@ -26,7 +23,7 @@ try:
             return str(self.name)
 
     class Domain(DomainMixin, BaseModel):  # type: ignore[misc]
-        """Domain model for tenant routing."""
+        """Domain name model used to route requests to a tenant."""
 
         class Meta:
             ordering = ["domain"]

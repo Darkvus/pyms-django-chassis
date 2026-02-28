@@ -1,6 +1,7 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
+"""Domain exception primitives for pyms-django-chassis microservices.
+
+Provides ``TypeException``, ``LogLevel``, ``ErrorDetail``, ``ErrorMessage``,
+and ``DomainException`` as building blocks for business-rule exceptions.
 """
 from __future__ import annotations
 
@@ -9,7 +10,7 @@ from enum import Enum
 
 
 class TypeException(str, Enum):
-    """Tipo de excepcion de dominio."""
+    """Enum of domain exception categories."""
     VALIDATION = "VALIDATION"
     BUSINESS = "BUSINESS"
     PERMISSION = "PERMISSION"
@@ -17,7 +18,7 @@ class TypeException(str, Enum):
 
 
 class LogLevel(str, Enum):
-    """Nivel de log para la excepcion."""
+    """Enum of log levels used when a ``DomainException`` is logged."""
     DEBUG = "debug"
     INFO = "info"
     WARNING = "warning"
@@ -26,14 +27,29 @@ class LogLevel(str, Enum):
 
 @dataclass(frozen=True, slots=True)
 class ErrorDetail:
-    """Detalle de un error de validacion."""
+    """Immutable detail entry for a single validation error.
+
+    Attributes:
+        code: Machine-readable error code.
+        description: Human-readable explanation.
+    """
+
     code: str
     description: str = ""
 
 
 @dataclass(frozen=True, slots=True)
 class ErrorMessage:
-    """Mensaje de error de dominio."""
+    """Immutable error message included in a ``DomainException`` response.
+
+    Attributes:
+        type: Message category (e.g. ``"ERROR"``, ``"INFO"``).
+        code: Machine-readable error code.
+        description: Human-readable explanation.
+        field: Field name associated with the error, if any.
+        details: List of nested ``ErrorDetail`` entries.
+    """
+
     type: str = "ERROR"
     code: str = ""
     description: str = ""
@@ -42,16 +58,25 @@ class ErrorMessage:
 
 
 class DomainException(Exception):
-    """
-    Excepcion base de dominio. Los microservicios heredan de esta clase
-    para definir sus excepciones de negocio.
+    """Base class for domain-specific exceptions.
 
-    Ejemplo:
-        class BookingNotFoundError(DomainException):
-            code = "booking_not_found"
-            description = "The requested booking does not exist"
-            type = TypeException.BUSINESS
-            log_level = LogLevel.WARNING
+    Subclass to define business-rule exceptions with a fixed code, description,
+    type, and log level. Override class attributes to customise the defaults.
+
+    Attributes:
+        code: Machine-readable error identifier.
+        description: Default human-readable description.
+        type: Category that controls the HTTP status code returned.
+        log_level: Severity used when logging the exception.
+
+    Example:
+        ::
+
+            class ResourceNotFoundError(DomainException):
+                code = "resource_not_found"
+                description = "The requested resource does not exist"
+                type = TypeException.BUSINESS
+                log_level = LogLevel.WARNING
     """
     code: str = "domain_error"
     description: str = ""
@@ -75,7 +100,11 @@ class DomainException(Exception):
 
     @property
     def messages(self) -> list[ErrorMessage]:
-        """Retorna la lista de mensajes de error formateados."""
+        """List of formatted error messages for the HTTP response.
+
+        Returns:
+            List of ``ErrorMessage`` instances describing the exception.
+        """
         if self.details:
             return [ErrorMessage(
                 type="ERROR", field=self.field, details=self.details

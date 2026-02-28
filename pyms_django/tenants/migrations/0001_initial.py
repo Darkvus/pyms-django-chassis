@@ -1,7 +1,4 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
-"""
+"""Initial database migration for pyms-django-chassis tenants."""
 from __future__ import annotations
 
 import uuid

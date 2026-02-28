@@ -1,7 +1,4 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
-"""
+"""Reusable OpenAPI parameter definitions for pyms-django-chassis."""
 from __future__ import annotations
 
 from typing import Any, Final
