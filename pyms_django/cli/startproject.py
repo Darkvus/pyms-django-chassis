@@ -1,15 +1,14 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
-"""
+"""Interactive startproject command for pyms-django-chassis."""
 from __future__ import annotations
 
 import os
 from pathlib import Path
 from typing import Final
 
-PYTHON_VERSIONS: Final[list[str]] = ["3.11", "3.12", "3.13"]
-EXTRAS: Final[list[str]] = ["monitoring", "aws", "tenant", "docs", "restql", "import-export", "dev-tools"]
+from pyms_django.cli.types import ProjectConfig
+
+PYTHON_VERSIONS: Final[list[str]] = ["3.11", "3.12", "3.13", "3.14"]
+EXTRAS: Final[list[str]] = ["monitoring", "aws", "tenant", "docs", "restql", "import-export", "dev-tools", "all"]
 
 
 def _prompt_choice(prompt: str, choices: list[str]) -> str:
@@ -75,7 +74,7 @@ import sys
 
 
 def main() -> None:
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.dev")
     from django.core.management import execute_from_command_line
     execute_from_command_line(sys.argv)
 
@@ -91,10 +90,19 @@ def _create_config_settings(
     service_name: str,
     base_path: str,
     multitenant: bool,
+    module_name: str,
+    actor: str,
 ) -> None:
-    """Create config/settings.py."""
-    content = f'''"""
-    Settings for {service_name}.
+    """Create config/settings/ package with base.py and dev.py."""
+    if actor:
+        url_module = f"apps.{module_name}.{actor}.api.v1.urls"
+    else:
+        url_module = f"apps.{module_name}.api.v1.urls"
+
+    base_content = f'''"""
+    Base settings for {service_name}.
+
+    Used for deployment. Set DJANGO_SETTINGS_MODULE=config.settings.base
 """
 from __future__ import annotations
 
@@ -104,14 +112,33 @@ SERVICE_NAME = "{service_name}"
 BASE_PATH = "{base_path}"
 MULTITENANT = {multitenant}
 
+INSTALLED_APPS = [*INSTALLED_APPS, "apps.{module_name}"]  # type: ignore[name-defined]  # noqa: F405
+
 LOCAL_APPS: list[tuple[str, str]] = [
-    # ("apps.<module>.api.v1.urls", BASE_PATH),
+    ("{url_module}", BASE_PATH),
 ]
 '''
+
+    dev_content = f'''"""
+    Development settings for {service_name}.
+
+    Used for local development. Set DJANGO_SETTINGS_MODULE=config.settings.dev
+"""
+from __future__ import annotations
+
+from config.settings.base import *  # noqa: F401,F403
+
+DEBUG = True
+ALLOWED_HOSTS = ["*"]
+'''
+
     config_dir = project_dir / "config"
-    config_dir.mkdir(parents=True, exist_ok=True)
+    settings_dir = config_dir / "settings"
+    settings_dir.mkdir(parents=True, exist_ok=True)
     (config_dir / "__init__.py").write_text("", encoding="utf-8")
-    (config_dir / "settings.py").write_text(content, encoding="utf-8")
+    (settings_dir / "__init__.py").write_text("", encoding="utf-8")
+    (settings_dir / "base.py").write_text(base_content, encoding="utf-8")
+    (settings_dir / "dev.py").write_text(dev_content, encoding="utf-8")
 
 
 def _create_config_urls(project_dir: Path) -> None:
@@ -137,7 +164,7 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.base")
 application = get_wsgi_application()
 '''
     (project_dir / "config" / "wsgi.py").write_text(content, encoding="utf-8")
@@ -154,7 +181,7 @@ import os
 
 from django.core.asgi import get_asgi_application
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.base")
 application = get_asgi_application()
 '''
     (project_dir / "config" / "asgi.py").write_text(content, encoding="utf-8")
@@ -299,7 +326,7 @@ def _create_env_example(
     project_name: str,
 ) -> None:
     """Create .env.example."""
-    content = f'''DJANGO_SETTINGS_MODULE=config.settings
+    content = f'''DJANGO_SETTINGS_MODULE=config.settings.base
 SERVICE_NAME={service_name}
 BASE_PATH={base_path}
 MULTITENANT={"true" if multitenant else "false"}'''
@@ -381,71 +408,96 @@ uv run python manage.py runserver
     (project_dir / "README.md").write_text(content, encoding="utf-8")
 
 
-def run_startproject(project_name: str) -> None:
-    """Run the interactive startproject command."""
-    print(f"\nCreating microservice: {project_name}")  # noqa: T201
-    print("=" * 50)  # noqa: T201
-
-    # 1. Package manager
+def _collect_config_fallback(project_name: str) -> ProjectConfig:
+    """Collect project configuration using plain input() prompts."""
     package_manager = _prompt_choice("Package manager:", ["uv", "poetry"])
-
-    # 2. SERVICE_NAME
     service_name = _prompt_text("SERVICE_NAME:", f"ms-{project_name}")
-
-    # 3. BASE_PATH
     base_path = _prompt_text("BASE_PATH:", f"/{project_name}")
-
-    # 4. Python version
     python_version = _prompt_choice("Python version:", PYTHON_VERSIONS)
-
-    # 5. Multi-tenant?
     multitenant = _prompt_yes_no("Enable multi-tenancy?", default=False)
-
-    # 6. Extras
     selected_extras = _prompt_multi_select("Select extras to install:", EXTRAS)
-
-    # 7. DDD module
     module_name = _prompt_text("Initial DDD module name (aggregate root):", project_name)
+    actor_input = _prompt_text("Actor (optional, press Enter to skip):", "")
+    actor = actor_input if actor_input else ""
 
-    # 8. Actor (optional)
-    actor = _prompt_text("Actor (optional, press Enter to skip):", "")
-    actor = actor if actor else None
+    return ProjectConfig(
+        package_manager=package_manager,
+        service_name=service_name,
+        base_path=base_path,
+        python_version=python_version,
+        multitenant=multitenant,
+        extras=selected_extras,
+        module_name=module_name,
+        actor=actor,
+    )
 
-    # Create project directory
+
+def _collect_config(project_name: str) -> ProjectConfig | None:
+    """Try TUI wizard; fall back to plain prompts if Textual is not installed."""
+    try:
+        from pyms_django.cli.tui import run_tui_wizard
+        return run_tui_wizard(project_name)
+    except ImportError:
+        print("[pyms-django] Textual not installed. pip install 'pyms-django-chassis[tui]'")  # noqa: T201
+        print("Falling back to plain prompts.\n")  # noqa: T201
+        return _collect_config_fallback(project_name)
+
+
+def _generate_project(project_name: str, config: ProjectConfig) -> None:
+    """Generate all project files from the given config."""
     project_dir = Path.cwd() / project_name
     project_dir.mkdir(parents=True, exist_ok=True)
 
-    # Generate all files
     _create_manage_py(project_dir)
-    _create_config_settings(project_dir, service_name, base_path, multitenant)
+    _create_config_settings(
+        project_dir,
+        config["service_name"],
+        config["base_path"],
+        config["multitenant"],
+        config["module_name"],
+        config["actor"],
+    )
     _create_config_urls(project_dir)
     _create_config_wsgi(project_dir)
     _create_config_asgi(project_dir)
 
-    if package_manager == "uv":
-        _create_pyproject_uv(project_dir, project_name, python_version, selected_extras)
+    if config["package_manager"] == "uv":
+        _create_pyproject_uv(project_dir, project_name, config["python_version"], config["extras"])
     else:
-        _create_pyproject_poetry(project_dir, project_name, python_version, selected_extras)
+        _create_pyproject_poetry(project_dir, project_name, config["python_version"], config["extras"])
 
-    _create_dockerfile(project_dir, python_version, package_manager)
-    _create_docker_compose(project_dir, project_name, multitenant)
-    _create_env_example(project_dir, service_name, base_path, multitenant, project_name)
+    _create_dockerfile(project_dir, config["python_version"], config["package_manager"])
+    _create_docker_compose(project_dir, project_name, config["multitenant"])
+    _create_env_example(project_dir, config["service_name"], config["base_path"], config["multitenant"], project_name)
     _create_gitignore(project_dir)
     _create_pre_commit_config(project_dir)
     _create_ruff_toml(project_dir)
     _create_readme(project_dir, project_name)
 
-    # Generate DDD structure
+    actor: str | None = config["actor"] if config["actor"] else None
     original_dir = Path.cwd()
     os.chdir(project_dir)
     from pyms_django.base.management.commands.folderddd import run_folderddd
-    run_folderddd(module_name, actor)
+    run_folderddd(config["module_name"], actor)
     os.chdir(original_dir)
 
     print(f"\nProject '{project_name}' created successfully!")  # noqa: T201
     print(f"  cd {project_name}")  # noqa: T201
-    if package_manager == "uv":
+    if config["package_manager"] == "uv":
         print("  uv sync")  # noqa: T201
     else:
         print("  poetry install")  # noqa: T201
     print("  python manage.py runserver")  # noqa: T201
+
+
+def run_startproject(project_name: str) -> None:
+    """Run the interactive startproject command."""
+    print(f"\nCreating microservice: {project_name}")  # noqa: T201
+    print("=" * 50)  # noqa: T201
+
+    config = _collect_config(project_name)
+    if config is None:
+        print("Project creation cancelled.")  # noqa: T201
+        return
+
+    _generate_project(project_name, config)

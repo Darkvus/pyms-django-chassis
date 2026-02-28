@@ -1,7 +1,4 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
-"""
+"""Base FilterSet for pyms-django-chassis microservices."""
 from __future__ import annotations
 
 from django_filters import FilterSet

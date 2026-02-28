@@ -1,7 +1,4 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
-"""
+"""OpenTelemetry metrics provider configuration for pyms-django-chassis."""
 from __future__ import annotations
 
 import logging
@@ -19,7 +16,17 @@ def configure_metrics_provider(
     artifact_version: str,
     collector_url: str = "http://localhost:4318/v1/metrics",
 ) -> None:
-    """Configure OpenTelemetry metrics with OTLP HTTP exporter."""
+    """Configure the OpenTelemetry metrics provider with an OTLP HTTP exporter.
+
+    Sets up a ``MeterProvider`` with a ``PeriodicExportingMetricReader`` and a
+    histogram view with explicit latency buckets. Does nothing if the
+    ``opentelemetry`` monitoring extras are not installed.
+
+    Args:
+        service_name: Name of the service reported to the collector.
+        artifact_version: Version of the service reported to the collector.
+        collector_url: OTLP HTTP endpoint for the metrics exporter.
+    """
     try:
         from opentelemetry import metrics
         from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter

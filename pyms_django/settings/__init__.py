@@ -1,5 +1,2 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
-"""
+"""Settings package for pyms-django-chassis."""
 from __future__ import annotations

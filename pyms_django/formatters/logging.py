@@ -1,7 +1,4 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
-"""
+"""JSON log formatter with OpenTelemetry trace context for pyms-django-chassis."""
 from __future__ import annotations
 
 import logging
@@ -13,9 +10,20 @@ from pythonjsonlogger.json import JsonFormatter
 
 
 class CustomJsonFormatter(JsonFormatter):
-    """JSON log formatter with OpenTelemetry trace context."""
+    """JSON log formatter that enriches records with service metadata and trace context.
+
+    Adds ``timestamp``, ``severity``, ``service``, ``version``, and optionally
+    ``trace``, ``span``, and ``parent`` fields from the active OpenTelemetry span.
+    """
 
     def add_fields(self, log_record: dict[str, Any], record: logging.LogRecord, message_dict: dict[str, Any]) -> None:
+        """Enrich the log record with service and trace metadata.
+
+        Args:
+            log_record: Mutable dict that will be serialised as the JSON log entry.
+            record: The original ``logging.LogRecord``.
+            message_dict: Pre-formatted message fields from the base formatter.
+        """
         super().add_fields(log_record, record, message_dict)
 
         log_record["timestamp"] = datetime.now(UTC).isoformat()

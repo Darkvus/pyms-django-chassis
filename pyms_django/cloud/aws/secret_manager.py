@@ -1,7 +1,4 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
-"""
+"""AWS Secrets Manager integration for pyms-django-chassis."""
 from __future__ import annotations
 
 import base64
@@ -24,7 +21,11 @@ AWS_ERROR_CODES: Final[dict[str, str]] = {
 
 
 class AwsSecretManager(SecretManagerResource):
-    """AWS Secrets Manager implementation."""
+    """Secrets Manager client that caches the secret bundle in memory.
+
+    Reads ``AWS_REGION`` and ``AWS_SECRET_NAME`` from the environment.
+    The boto3 client is created lazily on the first request.
+    """
 
     def __init__(self) -> None:
         self._region: str = os.environ.get("AWS_REGION", "us-east-1")
@@ -33,7 +34,11 @@ class AwsSecretManager(SecretManagerResource):
         self._cache: dict[str, dict[str, str]] = {}
 
     def _get_client(self) -> Any:
-        """Lazy-load the boto3 Secrets Manager client."""
+        """Return the boto3 Secrets Manager client, creating it if necessary.
+
+        Returns:
+            A boto3 ``secretsmanager`` client.
+        """
         if self._client is None:
             import boto3
             self._client = boto3.client(
@@ -43,7 +48,15 @@ class AwsSecretManager(SecretManagerResource):
         return self._client
 
     def _fetch_secret_bundle(self) -> dict[str, str]:
-        """Fetch the entire secret bundle from AWS."""
+        """Fetch the full secret bundle from AWS, caching the result.
+
+        Returns:
+            Dictionary mapping secret keys to their values.
+
+        Raises:
+            botocore.exceptions.ClientError: If the AWS request fails.
+            ValueError: If the response contains neither ``SecretString`` nor ``SecretBinary``.
+        """
         if self._secret_name in self._cache:
             return self._cache[self._secret_name]
 
@@ -69,7 +82,18 @@ class AwsSecretManager(SecretManagerResource):
         return secret_data
 
     def get_secret(self, secret_key: str) -> str:
-        """Retrieve a specific secret value by key."""
+        """Retrieve a specific secret value from the bundle.
+
+        Args:
+            secret_key: Key within the secret JSON bundle.
+
+        Returns:
+            The plaintext value for *secret_key*.
+
+        Raises:
+            KeyError: If *secret_key* is absent from the secret bundle.
+            botocore.exceptions.ClientError: If the AWS request fails.
+        """
         secrets = self._fetch_secret_bundle()
         if secret_key not in secrets:
             msg = f"Secret key '{secret_key}' not found in secret '{self._secret_name}'"

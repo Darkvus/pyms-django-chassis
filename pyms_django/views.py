@@ -1,7 +1,4 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
-"""
+"""API views for service metadata endpoints in pyms-django-chassis."""
 from __future__ import annotations
 
 import logging
@@ -20,24 +17,38 @@ logger = logging.getLogger(__name__)
 
 
 class VersioningView(APIView):
-    """Returns the service version."""
+    """View that returns the current service artifact version."""
 
     permission_classes = [AllowAny]
     authentication_classes: list[Any] = []
 
     def get(self, request: Request) -> Response:
-        """Return the current artifact version."""
+        """Return the artifact version.
+
+        Args:
+            request: Incoming HTTP request.
+
+        Returns:
+            JSON response with ``{"version": "<artifact_version>"}``.
+        """
         return Response({"version": getattr(settings, "ARTIFACT_VERSION", "unknown")})
 
 
 class DependenciesTreeView(APIView):
-    """Returns the dependency tree from pyproject.toml."""
+    """View that returns the project dependency list from ``pyproject.toml``."""
 
     permission_classes = [AllowAny]
     authentication_classes: list[Any] = []
 
     def get(self, request: Request) -> Response:
-        """Read and return the project dependencies."""
+        """Return the list of project dependencies.
+
+        Args:
+            request: Incoming HTTP request.
+
+        Returns:
+            JSON response with ``{"dependencies": [...]}``, or an empty dict on error.
+        """
         pyproject_path = Path.cwd() / "pyproject.toml"
         if not pyproject_path.exists():
             return Response({"dependencies": {}})
@@ -51,13 +62,20 @@ class DependenciesTreeView(APIView):
 
 
 class RestQlModelViewSet(viewsets.ModelViewSet):  # type: ignore[type-arg]
-    """
-    ModelViewSet that uses RestQL for dynamic field selection
-    when a 'query' parameter is present.
+    """``ModelViewSet`` that enables RestQL field filtering via a ``query`` param.
+
+    Falls back to the base serializer class when ``django-restql`` is not
+    installed or when no ``query`` parameter is present in the request.
     """
 
     def get_serializer_class(self) -> type:
-        """Return RestQL-enabled serializer if query param is present."""
+        """Return a RestQL-enhanced serializer class when appropriate.
+
+        Returns:
+            A subclass of the base serializer with ``DynamicFieldsMixin`` mixed in
+            when ``django-restql`` is available and a ``query`` param is present,
+            otherwise the base serializer class.
+        """
         base_class = super().get_serializer_class()
         if "query" in self.request.query_params:
             try:

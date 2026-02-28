@@ -1,7 +1,4 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
-"""
+"""Default Django settings for pyms-django-chassis microservices."""
 from __future__ import annotations
 
 import os

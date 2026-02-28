@@ -1,7 +1,4 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
-"""
+"""Request logging and OpenTelemetry metrics middleware for pyms-django-chassis."""
 from __future__ import annotations
 
 import json
@@ -27,7 +24,11 @@ EXCLUDED_PATHS: Final[list[str]] = [
 
 
 def _get_counter() -> Any:
-    """Get or create the HTTP response status counter metric."""
+    """Create an OpenTelemetry HTTP response status counter, or return ``None``.
+
+    Returns:
+        An OpenTelemetry ``Counter`` instrument, or ``None`` if the SDK is not installed.
+    """
     try:
         from opentelemetry import metrics
         meter = metrics.get_meter(__name__)
@@ -40,7 +41,11 @@ def _get_counter() -> Any:
 
 
 def _get_histogram() -> Any:
-    """Get or create the HTTP request latency histogram metric."""
+    """Create an OpenTelemetry HTTP request latency histogram, or return ``None``.
+
+    Returns:
+        An OpenTelemetry ``Histogram`` instrument, or ``None`` if the SDK is not installed.
+    """
     try:
         from opentelemetry import metrics
         meter = metrics.get_meter(__name__)
@@ -62,11 +67,25 @@ class RequestLoggingMiddleware:
         self._histogram = _get_histogram()
 
     def _should_skip(self, path: str) -> bool:
-        """Check if the request path should be excluded from logging."""
+        """Return ``True`` if the request path should be excluded from logging.
+
+        Args:
+            path: The request path to check.
+
+        Returns:
+            ``True`` when *path* contains any of the ``EXCLUDED_PATHS`` segments.
+        """
         return any(excluded in path for excluded in EXCLUDED_PATHS)
 
     def _get_request_payload(self, request: HttpRequest) -> dict[str, Any] | str:
-        """Extract request payload, respecting DISABLED_PAYLOAD_LOGGING."""
+        """Extract the request body, masking fields listed in ``DISABLED_PAYLOAD_LOGGING``.
+
+        Args:
+            request: The incoming HTTP request.
+
+        Returns:
+            Parsed JSON payload dict with sensitive fields masked, or an empty string.
+        """
         disabled_logging: dict[str, list[str]] = getattr(settings, "DISABLED_PAYLOAD_LOGGING", {})
         endpoint = request.path
         disabled_fields = disabled_logging.get(endpoint, [])
@@ -85,7 +104,14 @@ class RequestLoggingMiddleware:
         return ""
 
     def _get_request_headers(self, request: HttpRequest) -> dict[str, str]:
-        """Extract relevant request headers."""
+        """Extract HTTP headers from the request META dict.
+
+        Args:
+            request: The incoming HTTP request.
+
+        Returns:
+            Dictionary of header names to their values.
+        """
         headers: dict[str, str] = {}
         for key, value in request.META.items():
             if key.startswith("HTTP_"):

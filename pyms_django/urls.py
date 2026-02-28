@@ -1,6 +1,7 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
+"""Default URL configuration for pyms-django-chassis.
+
+Registers health-check, version, dependencies, and optionally
+schema (drf-spectacular), admin, and debug toolbar endpoints.
 """
 from __future__ import annotations
 
@@ -14,7 +15,14 @@ from pyms_django.views import DependenciesTreeView, VersioningView
 
 
 def build_path(route: str) -> str:
-    """Build a full path by prepending BASE_PATH."""
+    """Prepend ``BASE_PATH`` to a route string.
+
+    Args:
+        route: Relative URL route to prefix.
+
+    Returns:
+        Full path string with ``BASE_PATH`` prepended, always ending with ``/``.
+    """
     base = getattr(settings, "BASE_PATH", "").strip("/")
     route = route.strip("/")
     if base and route:
@@ -27,7 +35,14 @@ def build_path(route: str) -> str:
 
 
 def health_check(request: HttpRequest) -> HttpResponse:
-    """Simple health check endpoint."""
+    """Respond with HTTP 200 OK for liveness probes.
+
+    Args:
+        request: Incoming HTTP request.
+
+    Returns:
+        Plain-text ``HttpResponse`` with body ``"OK"``.
+    """
     return HttpResponse("OK")
 
 

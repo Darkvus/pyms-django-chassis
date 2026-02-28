@@ -1,7 +1,4 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
-"""
+"""Base DRF serializers and error-response serializers for pyms-django-chassis."""
 from __future__ import annotations
 
 import logging
@@ -13,15 +10,26 @@ logger = logging.getLogger(__name__)
 
 
 class BaseSerializer(serializers.ModelSerializer):  # type: ignore[type-arg]
-    """
-    Base serializer with UUID id, model validation via clean(),
-    and optimized update that only saves changed fields.
+    """Base ``ModelSerializer`` with model-level validation and optimised updates.
+
+    Includes a UUID ``id`` field, delegates validation to the model's
+    ``clean()`` method, and saves only changed fields on update.
     """
 
     id = serializers.UUIDField(required=False)
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        """Validate by instantiating the model and calling clean()."""
+        """Validate data using the model's ``clean()`` method.
+
+        Instantiates the model (or updates the existing instance) and calls
+        ``clean()`` to run full model-level validation.
+
+        Args:
+            attrs: Dictionary of deserialized field values.
+
+        Returns:
+            Validated attribute dictionary.
+        """
         attrs = super().validate(attrs)
         instance = self.instance
         if instance is None:
@@ -33,7 +41,19 @@ class BaseSerializer(serializers.ModelSerializer):  # type: ignore[type-arg]
         return attrs
 
     def update(self, instance: Any, validated_data: dict[str, Any]) -> Any:
-        """Update only changed fields to avoid race conditions."""
+        """Update the instance, saving only fields that have changed.
+
+        Avoids overwriting concurrent modifications by limiting the
+        ``UPDATE`` statement to fields whose values differ from the
+        current instance.
+
+        Args:
+            instance: The model instance to update.
+            validated_data: Dictionary of validated field values.
+
+        Returns:
+            The updated model instance.
+        """
         update_fields: list[str] = ["updated_at"]
         for attr, value in validated_data.items():
             if getattr(instance, attr, None) != value:
@@ -86,7 +106,18 @@ class PaginateResponseSerializer(serializers.Serializer):  # type: ignore[type-a
 
 
 def dynamic_serializer(model_name: type, expand: bool = False) -> type:
-    """Create a dynamic serializer, optionally with DynamicFieldsMixin from django-restql."""
+    """Dynamically create a ``ModelSerializer`` class for the given model.
+
+    If ``django-restql`` is installed, the serializer also inherits
+    ``DynamicFieldsMixin`` for field filtering via query parameters.
+
+    Args:
+        model_name: The Django model class.
+        expand: If ``True``, sets ``depth=1`` to expand related objects.
+
+    Returns:
+        A new serializer class with ``fields = "__all__"``.
+    """
     bases: list[type] = []
     try:
         from django_restql.mixins import DynamicFieldsMixin
@@ -112,5 +143,12 @@ def dynamic_serializer(model_name: type, expand: bool = False) -> type:
 
 
 def serializer_ql(model_name: type) -> type:
-    """Create a RestQL-enabled serializer."""
+    """Create a RestQL-enabled serializer for the given model.
+
+    Args:
+        model_name: The Django model class.
+
+    Returns:
+        A new serializer class with RestQL support if available.
+    """
     return dynamic_serializer(model_name, expand=False)

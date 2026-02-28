@@ -1,7 +1,4 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
-"""
+"""Django admin registrations for multi-tenant models in pyms-django-chassis."""
 from __future__ import annotations
 
 from django.contrib import admin
@@ -11,7 +8,7 @@ try:
 
     @admin.register(Tenant)
     class TenantAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
-        """Admin for Tenant model."""
+        """Admin interface for the ``Tenant`` model."""
 
         list_display = ("name", "schema_name", "created_at", "active")
         list_filter = ("active",)
@@ -19,7 +16,7 @@ try:
 
     @admin.register(Domain)
     class DomainAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
-        """Admin for Domain model."""
+        """Admin interface for the ``Domain`` model."""
 
         list_display = ("domain", "tenant", "is_primary", "created_at")
         list_filter = ("is_primary",)

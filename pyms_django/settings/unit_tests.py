@@ -1,7 +1,4 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
-"""
+"""Minimal Django settings for running pyms-django-chassis unit tests."""
 from __future__ import annotations
 
 from typing import Any, Final

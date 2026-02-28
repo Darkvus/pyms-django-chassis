@@ -1,7 +1,4 @@
-"""
-    pyms-django-chassis
-    Open-source Django microservice chassis
-"""
+"""Public re-exports for pyms-django-chassis exception primitives."""
 from __future__ import annotations
 
 from .domain import DomainException, TypeException, LogLevel, ErrorDetail, ErrorMessage
