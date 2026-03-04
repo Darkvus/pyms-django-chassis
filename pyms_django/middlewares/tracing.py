@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
-from typing import Any
-
-from django.http import HttpRequest, HttpResponse
+from typing import TYPE_CHECKING, Any
 
 from pyms_django.trace_context import span_id_var, trace_id_var
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from django.http import HttpRequest, HttpResponse
 
 logger = logging.getLogger(__name__)
 

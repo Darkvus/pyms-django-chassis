@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from django.contrib import admin
-from django.db.models import Model, QuerySet
 from django.http import HttpRequest, HttpResponse
 from django.template.response import TemplateResponse
+
+if TYPE_CHECKING:
+    from django.db.models import Model, QuerySet
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ try:
         """Combined import/export admin mixin with bulk support."""
         pass
 
-    def modelresource_factory(model: type[Model], **kwargs: Any) -> type[ModelResource]:
+    def modelresource_factory(model: type[Model], **kwargs: object) -> type[ModelResource]:
         """Create a ``ModelResource`` subclass with bulk operations enabled.
 
         Args:
@@ -78,7 +79,7 @@ try:
         Returns:
             A new ``ModelResource`` subclass with ``use_bulk=True``.
         """
-        meta_attrs: dict[str, Any] = {
+        meta_attrs: dict[str, object] = {
             "model": model,
             "use_bulk": True,
             **kwargs,
@@ -95,12 +96,12 @@ except ImportError:
         """Fallback when django-import-export is not installed."""
         pass
 
-    def modelresource_factory(model: type[Model], **kwargs: Any) -> type:  # type: ignore[misc]
+    def modelresource_factory(_model: type[Model], **_kwargs: object) -> type:  # type: ignore[misc]
         """Raise ``ImportError`` because ``django-import-export`` is not installed.
 
         Args:
-            model: The Django model class.
-            **kwargs: Ignored.
+            _model: The Django model class.
+            **_kwargs: Ignored.
 
         Raises:
             ImportError: Always, with installation instructions.

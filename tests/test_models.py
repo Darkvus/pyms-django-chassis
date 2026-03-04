@@ -6,7 +6,7 @@ import uuid
 import pytest
 from django.db import models
 
-from pyms_django.models import BaseModel, BaseModelReplicatedData, SoftDeleteQuerySet
+from pyms_django.models import BaseModel, BaseModelReplicatedData
 
 
 # Concrete model for testing (uses in-memory SQLite via test settings)

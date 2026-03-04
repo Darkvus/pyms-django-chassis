@@ -40,7 +40,7 @@ class BaseSerializer(serializers.ModelSerializer):  # type: ignore[type-arg]
         instance.clean()
         return attrs
 
-    def update(self, instance: Any, validated_data: dict[str, Any]) -> Any:
+    def update(self, instance: Any, validated_data: dict[str, Any]) -> Any:  # noqa: ANN401
         """Update the instance, saving only fields that have changed.
 
         Avoids overwriting concurrent modifications by limiting the
@@ -134,12 +134,11 @@ def dynamic_serializer(model_name: type, expand: bool = False) -> type:
         meta_attrs["depth"] = 1
 
     meta = type("Meta", (), meta_attrs)
-    serializer_class = type(
+    return type(
         f"{model_name.__name__}DynamicSerializer",
         tuple(bases),
         {"Meta": meta},
     )
-    return serializer_class
 
 
 def serializer_ql(model_name: type) -> type:

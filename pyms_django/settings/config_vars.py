@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Final
+from typing import Final
 
 SECRET_MANAGER_PREFIX: Final[str] = "ENC_"
 

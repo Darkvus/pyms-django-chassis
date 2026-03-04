@@ -26,5 +26,6 @@ class TestInternalServerErrorResponse:
         assert "messages" in schema["properties"]
 
     def test_default_code(self) -> None:
-        items = INTERNAL_SERVER_ERROR_RESPONSE["content"]["application/json"]["schema"]["properties"]["messages"]["items"]
+        schema = INTERNAL_SERVER_ERROR_RESPONSE["content"]["application/json"]["schema"]
+        items = schema["properties"]["messages"]["items"]
         assert items["properties"]["code"]["default"] == "unknown_error"

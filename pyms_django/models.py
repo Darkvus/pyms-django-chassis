@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar
 
 from django.db import models
 from django.db.models import QuerySet
@@ -73,7 +73,7 @@ class BaseModel(models.Model):
     class Meta:
         abstract = True
 
-    def delete(self, using: str | None = None, keep_parents: bool = False) -> tuple[int, dict[str, int]]:  # type: ignore[override]
+    def delete(self, using: str | None = None, _keep_parents: bool = False) -> tuple[int, dict[str, int]]:  # type: ignore[override]
         """Soft-delete the record by marking it as inactive.
 
         Sets ``active=False`` and ``deleted_at`` to the current UTC time.
@@ -81,7 +81,7 @@ class BaseModel(models.Model):
 
         Args:
             using: Database alias to use for the save operation.
-            keep_parents: Present for API compatibility; not used.
+            _keep_parents: Present for API compatibility; not used.
 
         Returns:
             Tuple of ``(1, {model_label: 1})``.

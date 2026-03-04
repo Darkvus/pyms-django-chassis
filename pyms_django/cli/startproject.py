@@ -110,10 +110,7 @@ def _create_config_settings(
     actor: str,
 ) -> None:
     """Create config/settings/ package with base.py and dev.py."""
-    if actor:
-        url_module = f"apps.{module_name}.{actor}.api.v1.urls"
-    else:
-        url_module = f"apps.{module_name}.api.v1.urls"
+    url_module = f"apps.{module_name}.{actor}.api.v1.urls" if actor else f"apps.{module_name}.api.v1.urls"
 
     base_content = f'''"""
     Base settings for {service_name}.
@@ -314,7 +311,7 @@ def _create_docker_compose(
     multitenant: bool,
 ) -> None:
     """Create docker-compose.yml."""
-    services = f'''services:
+    services = '''services:
   app:
     build: .
     ports:
@@ -488,9 +485,13 @@ def _generate_project(project_name: str, config: ProjectConfig) -> None:
     _create_config_asgi(project_dir)
 
     if config["package_manager"] == "uv":
-        _create_pyproject_uv(project_dir, project_name, config["python_version"], config["django_version"], config["extras"])
+        _create_pyproject_uv(
+            project_dir, project_name, config["python_version"], config["django_version"], config["extras"],
+        )
     else:
-        _create_pyproject_poetry(project_dir, project_name, config["python_version"], config["django_version"], config["extras"])
+        _create_pyproject_poetry(
+            project_dir, project_name, config["python_version"], config["django_version"], config["extras"],
+        )
 
     _create_dockerfile(project_dir, config["python_version"], config["package_manager"])
     _create_docker_compose(project_dir, project_name, config["multitenant"])

@@ -1,16 +1,20 @@
 """Request logging and OpenTelemetry metrics middleware for pyms-django-chassis."""
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import os
 import threading
 import time
-from collections.abc import Callable
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
 from django.conf import settings
-from django.http import HttpRequest, HttpResponse
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from django.http import HttpRequest, HttpResponse
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +27,7 @@ EXCLUDED_PATHS: Final[list[str]] = [
 ]
 
 
-def _get_counter() -> Any:
+def _get_counter() -> object | None:
     """Create an OpenTelemetry HTTP response status counter, or return ``None``.
 
     Returns:
@@ -40,7 +44,7 @@ def _get_counter() -> Any:
         return None
 
 
-def _get_histogram() -> Any:
+def _get_histogram() -> object | None:
     """Create an OpenTelemetry HTTP request latency histogram, or return ``None``.
 
     Returns:
@@ -166,15 +170,11 @@ class RequestLoggingMiddleware:
         }
 
         if self._counter:
-            try:
+            with contextlib.suppress(Exception):
                 self._counter.add(1, metric_attrs)
-            except Exception:
-                pass
 
         if self._histogram:
-            try:
+            with contextlib.suppress(Exception):
                 self._histogram.record(elapsed_ms, metric_attrs)
-            except Exception:
-                pass
 
         return response

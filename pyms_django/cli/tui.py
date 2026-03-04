@@ -1,7 +1,7 @@
 """Interactive TUI wizard for pyms-django startproject using Textual."""
 from __future__ import annotations
 
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -10,7 +10,9 @@ from textual.screen import Screen
 from textual.widgets import Button, Checkbox, Footer, Header, Input, Label, RadioButton, RadioSet, Rule, Static, Switch
 
 from pyms_django.cli.startproject import DJANGO_CONSTRAINTS, DJANGO_VERSIONS, _to_module_name
-from pyms_django.cli.types import ProjectConfig
+
+if TYPE_CHECKING:
+    from pyms_django.cli.types import ProjectConfig
 
 PYTHON_VERSIONS: Final[list[str]] = ["3.11", "3.12", "3.13", "3.14"]
 EXTRAS: Final[list[str]] = ["monitoring", "aws", "tenant", "docs", "restql", "import-export", "dev-tools", "all"]
@@ -168,7 +170,7 @@ class ProjectSetupScreen(Screen[dict]):  # type: ignore[type-arg]
         yield Label("Django version", classes="section-label")
         with RadioSet(id="dj_version"):
             for i, v in enumerate(DJANGO_VERSIONS):
-                # Default: 5.2 (LTS)
+                # Default: 5.2 (LTS)  # noqa: ERA001
                 yield RadioButton(v, value=(v == "5.2 (LTS)"), id=f"dj_{i}")
 
         yield Static("", id="error_msg", classes="error-label")
@@ -223,12 +225,11 @@ class FeaturesScreen(Screen[dict]):  # type: ignore[type-arg]
         yield Label("Step 2 of 3 — Features", classes="wizard-title")
 
         # ── Multi-tenancy ─────────────────────────────────────────────
-        with Vertical(classes="mt-panel"):
-            with Horizontal(classes="mt-row"):
-                yield Switch(value=False, id="multitenant")
-                with Vertical():
-                    yield Label("Enable multi-tenant support", classes="mt-title")
-                    yield Label("Schema isolation via django-tenants — requires PostgreSQL", classes="mt-hint")
+        with Vertical(classes="mt-panel"), Horizontal(classes="mt-row"):
+            yield Switch(value=False, id="multitenant")
+            with Vertical():
+                yield Label("Enable multi-tenant support", classes="mt-title")
+                yield Label("Schema isolation via django-tenants — requires PostgreSQL", classes="mt-hint")
 
         # ── Extras ────────────────────────────────────────────────────
         with Horizontal(classes="extras-hdr"):

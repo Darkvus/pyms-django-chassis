@@ -1,9 +1,11 @@
 """JSON log formatter with OpenTelemetry trace context for pyms-django-chassis."""
 from __future__ import annotations
 
-import logging
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    import logging
 
 from django.conf import settings
 from pythonjsonlogger.json import JsonFormatter

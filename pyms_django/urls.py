@@ -5,8 +5,6 @@ schema (drf-spectacular), admin, and debug toolbar endpoints.
 """
 from __future__ import annotations
 
-from typing import Any
-
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.urls import URLPattern, URLResolver, include, path
@@ -34,11 +32,11 @@ def build_path(route: str) -> str:
     return ""
 
 
-def health_check(request: HttpRequest) -> HttpResponse:
+def health_check(_request: HttpRequest) -> HttpResponse:
     """Respond with HTTP 200 OK for liveness probes.
 
     Args:
-        request: Incoming HTTP request.
+        _request: Incoming HTTP request.
 
     Returns:
         Plain-text ``HttpResponse`` with body ``"OK"``.

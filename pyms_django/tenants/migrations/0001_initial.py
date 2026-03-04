@@ -39,7 +39,9 @@ class Migration(migrations.Migration):
                 ("active", models.BooleanField(default=True)),
                 ("domain", models.CharField(max_length=253, unique=True)),
                 ("is_primary", models.BooleanField(default=True)),
-                ("tenant", models.ForeignKey(on_delete=models.deletion.CASCADE, related_name="domains", to="tenants.tenant")),
+                ("tenant", models.ForeignKey(
+                    on_delete=models.deletion.CASCADE, related_name="domains", to="tenants.tenant",
+                )),
             ],
             options={
                 "ordering": ["domain"],

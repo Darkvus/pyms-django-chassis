@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 from django.core.management.base import BaseCommand, CommandParser
 
@@ -71,17 +70,41 @@ def run_folderddd(module: str, actor: str | None = None) -> None:
         # ── Application layer ─────────────────────────────────────────
         ddd_root / "application" / "__init__.py": "",
         ddd_root / "application" / "services" / "__init__.py": "",
-        ddd_root / "application" / "services" / "dtos.py": f'"""\n    DTOs for {module} application services.\n"""\nfrom __future__ import annotations\n',
-        ddd_root / "application" / "services" / f"{module}_service.py": f'"""\n    Service for {module}.\n"""\nfrom __future__ import annotations\n',
+        ddd_root / "application" / "services" / "dtos.py": (
+            f'"""\n    DTOs for {module} application services.\n"""\n'
+            "from __future__ import annotations\n"
+        ),
+        ddd_root / "application" / "services" / f"{module}_service.py": (
+            f'"""\n    Service for {module}.\n"""\n'
+            "from __future__ import annotations\n"
+        ),
         ddd_root / "application" / "use_cases" / "__init__.py": "",
-        ddd_root / "application" / "use_cases" / "dtos.py": f'"""\n    DTOs for {module} use cases.\n"""\nfrom __future__ import annotations\n',
-        ddd_root / "application" / "use_cases" / f"{module}_use_case.py": f'"""\n    Use case for {module}.\n"""\nfrom __future__ import annotations\n',
+        ddd_root / "application" / "use_cases" / "dtos.py": (
+            f'"""\n    DTOs for {module} use cases.\n"""\n'
+            "from __future__ import annotations\n"
+        ),
+        ddd_root / "application" / "use_cases" / f"{module}_use_case.py": (
+            f'"""\n    Use case for {module}.\n"""\n'
+            "from __future__ import annotations\n"
+        ),
         # ── Domain layer ──────────────────────────────────────────────
         ddd_root / "domain" / "__init__.py": "",
-        ddd_root / "domain" / "aggregates.py": f'"""\n    Aggregates for {module} domain.\n"""\nfrom __future__ import annotations\n',
-        ddd_root / "domain" / "entities.py": f'"""\n    Entities for {module} domain.\n"""\nfrom __future__ import annotations\n',
-        ddd_root / "domain" / "value_objects.py": f'"""\n    Value objects for {module} domain.\n"""\nfrom __future__ import annotations\n',
-        ddd_root / "domain" / "repositories.py": f'"""\n    Repository interfaces for {module} domain.\n"""\nfrom __future__ import annotations\n',
+        ddd_root / "domain" / "aggregates.py": (
+            f'"""\n    Aggregates for {module} domain.\n"""\n'
+            "from __future__ import annotations\n"
+        ),
+        ddd_root / "domain" / "entities.py": (
+            f'"""\n    Entities for {module} domain.\n"""\n'
+            "from __future__ import annotations\n"
+        ),
+        ddd_root / "domain" / "value_objects.py": (
+            f'"""\n    Value objects for {module} domain.\n"""\n'
+            "from __future__ import annotations\n"
+        ),
+        ddd_root / "domain" / "repositories.py": (
+            f'"""\n    Repository interfaces for {module} domain.\n"""\n'
+            "from __future__ import annotations\n"
+        ),
         # ── Infrastructure layer ──────────────────────────────────────
         ddd_root / "infrastructure" / "__init__.py": "",
         ddd_root / "infrastructure" / "models.py": (
@@ -107,9 +130,20 @@ def run_folderddd(module: str, actor: str | None = None) -> None:
         files.update({
             ddd_root / "api" / "__init__.py": "",
             ddd_root / "api" / "v1" / "__init__.py": "",
-            ddd_root / "api" / "v1" / "serializers.py": f'"""\n    Serializers for {module} API v1.\n"""\nfrom __future__ import annotations\n',
-            ddd_root / "api" / "v1" / "urls.py": f'"""\n    URL configuration for {module} API v1.\n"""\nfrom __future__ import annotations\n\nfrom django.urls import URLPattern, path\n\nurlpatterns: list[URLPattern] = []\n',
-            ddd_root / "api" / "v1" / "views.py": f'"""\n    Views for {module} API v1.\n"""\nfrom __future__ import annotations\n',
+            ddd_root / "api" / "v1" / "serializers.py": (
+                f'"""\n    Serializers for {module} API v1.\n"""\n'
+                "from __future__ import annotations\n"
+            ),
+            ddd_root / "api" / "v1" / "urls.py": (
+                f'"""\n    URL configuration for {module} API v1.\n"""\n'
+                "from __future__ import annotations\n\n"
+                "from django.urls import URLPattern, path\n\n"
+                "urlpatterns: list[URLPattern] = []\n"
+            ),
+            ddd_root / "api" / "v1" / "views.py": (
+                f'"""\n    Views for {module} API v1.\n"""\n'
+                "from __future__ import annotations\n"
+            ),
         })
 
     for file_path, content in files.items():
@@ -138,14 +172,14 @@ class Command(BaseCommand):
         parser.add_argument("module", type=str, help="Name of the module (aggregate root)")
         parser.add_argument("--actor", type=str, default=None, help="Name of the actor (optional)")
 
-    def handle(self, *args: Any, **options: Any) -> None:
+    def handle(self, *_args: object, **options: object) -> None:  # noqa: ANN401
         """Execute the command.
 
         Args:
-            *args: Unused positional arguments.
+            *_args: Unused positional arguments.
             **options: Parsed CLI options, including ``module`` and ``actor``.
         """
-        module: str = options["module"]
-        actor: str | None = options.get("actor")
+        module: str = str(options["module"])
+        actor: str | None = str(options["actor"]) if options.get("actor") else None
         run_folderddd(module, actor)
         self.stdout.write(self.style.SUCCESS(f"DDD folder structure created for '{module}'"))

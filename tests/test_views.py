@@ -1,12 +1,13 @@
 """Tests for pyms_django views."""
 from __future__ import annotations
 
-import tempfile
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
 import pytest
-from django.test import RequestFactory
 from rest_framework.test import APIRequestFactory
 
 from pyms_django.views import DependenciesTreeView, VersioningView

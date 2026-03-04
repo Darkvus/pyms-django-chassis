@@ -1,7 +1,7 @@
 """Minimal Django settings for running pyms-django-chassis unit tests."""
 from __future__ import annotations
 
-from typing import Any, Final
+from typing import Final
 
 DATABASES: Final[dict[str, dict[str, str]]] = {
     "default": {

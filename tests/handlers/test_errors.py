@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.http import Http404
 from rest_framework.exceptions import APIException, NotAuthenticated, ValidationError
 
@@ -32,7 +31,7 @@ class TestProcessErrorMessage:
     def test_list_of_string_errors(self) -> None:
         err = MagicMock()
         err.code = "required"
-        err.__str__ = lambda self: "This field is required."
+        err.__str__ = lambda _: "This field is required."
         result = process_error_message("name", [err])
         assert result["type"] == "INFO"
         assert result["field"] == "name"
@@ -53,7 +52,7 @@ class TestProcessErrors:
     def test_dict_errors(self) -> None:
         err = MagicMock()
         err.code = "required"
-        err.__str__ = lambda self: "Required."
+        err.__str__ = lambda _: "Required."
         result = process_errors({"name": [err]})
         assert len(result) == 1
         assert result[0]["field"] == "name"

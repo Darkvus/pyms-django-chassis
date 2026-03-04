@@ -14,7 +14,7 @@ class RunSQLFile(migrations.RunSQL):
     files rather than embedded in migration source code.
     """
 
-    def __init__(self, sql_file: str | Path, reverse_sql_file: str | Path | None = None, **kwargs: Any) -> None:
+    def __init__(self, sql_file: str | Path, reverse_sql_file: str | Path | None = None, **kwargs: Any) -> None:  # noqa: ANN401
         """Initialize ``RunSQLFile`` from file paths.
 
         Args:

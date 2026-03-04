@@ -33,7 +33,7 @@ class AwsSecretManager(SecretManagerResource):
         self._client: Any = None
         self._cache: dict[str, dict[str, str]] = {}
 
-    def _get_client(self) -> Any:
+    def _get_client(self) -> Any:  # noqa: ANN401
         """Return the boto3 Secrets Manager client, creating it if necessary.
 
         Returns:

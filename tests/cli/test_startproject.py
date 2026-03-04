@@ -1,8 +1,6 @@
 """Tests for pyms_django CLI utilities."""
 from __future__ import annotations
 
-import pytest
-
 from pyms_django.cli.startproject import _to_module_name
 
 

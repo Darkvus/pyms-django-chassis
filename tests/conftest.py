@@ -5,7 +5,7 @@ import pytest
 
 
 @pytest.fixture(scope="session")
-def django_db_setup(django_db_setup: None, django_db_blocker: object) -> None:  # type: ignore[override]
+def django_db_setup(django_db_setup: None, django_db_blocker: object) -> None:  # type: ignore[override]  # noqa: ARG001
     """Extend the default DB setup with the SampleModel table used in model tests."""
     with django_db_blocker.unblock():  # type: ignore[attr-defined]
         from django.db import connection

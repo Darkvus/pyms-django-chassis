@@ -13,11 +13,11 @@ def main() -> None:
     )
     subparsers = parser.add_subparsers(dest="command")
 
-    # Subcommand: startproject
+    # Subcommand: startproject  # noqa: ERA001
     sp = subparsers.add_parser("startproject", help="Generate a Django microservice skeleton")
     sp.add_argument("project_name", help="Name of the project")
 
-    # Subcommand: folderddd
+    # Subcommand: folderddd  # noqa: ERA001
     fd = subparsers.add_parser("folderddd", help="Generate DDD folder structure")
     fd.add_argument("module", help="Name of the module (aggregate root)")
     fd.add_argument("--actor", help="Name of the actor (optional)")

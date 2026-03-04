@@ -29,7 +29,7 @@ class TestTracingMiddleware:
     def test_b3_headers_set_context_vars(self, rf: RequestFactory, ok_response: HttpResponse) -> None:
         captured: dict[str, str] = {}
 
-        def capturing(req: HttpRequest) -> HttpResponse:
+        def capturing(_req: HttpRequest) -> HttpResponse:
             captured["trace"] = trace_id_var.get()
             captured["span"] = span_id_var.get()
             return ok_response
@@ -44,7 +44,7 @@ class TestTracingMiddleware:
         span_id_var.set("")
         captured: dict[str, str] = {}
 
-        def capturing(req: HttpRequest) -> HttpResponse:
+        def capturing(_req: HttpRequest) -> HttpResponse:
             captured["trace"] = trace_id_var.get()
             return ok_response
 

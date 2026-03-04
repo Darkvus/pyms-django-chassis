@@ -56,7 +56,6 @@ if MULTITENANT:
             *TENANT_APPS,
         ]
         DATABASE_ROUTERS = ["django_tenants.routers.TenantSyncRouter", *DATABASE_ROUTERS]
-        DATABASES["default"]["ENGINE"] = "django_tenants.postgresql_backend"
     except ImportError:
         pass
 
@@ -137,6 +136,13 @@ DATABASES: dict[str, dict[str, Any]] = {
         "PORT": os.environ.get("DATABASE_PORT", ""),
     },
 }
+
+if MULTITENANT:
+    try:
+        import django_tenants  # noqa: F401
+        DATABASES["default"]["ENGINE"] = "django_tenants.postgresql_backend"
+    except ImportError:
+        pass
 
 ACTIVE_DATABASE_READ: bool = os.environ.get("ACTIVE_DATABASE_READ", "false").lower() == "true"
 if ACTIVE_DATABASE_READ:
@@ -230,7 +236,7 @@ LOGGING: dict[str, Any] = {
     "filters": {
         "tenant_context": {
             "()": "django.utils.log.CallbackFilter",
-            "callback": lambda record: True,
+            "callback": lambda _: True,
         },
     },
     "handlers": {
