@@ -1,7 +1,9 @@
 """Interactive startproject command for pyms-django-chassis."""
+
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 from typing import Final
 
@@ -9,6 +11,21 @@ from pyms_django.cli.types import ProjectConfig
 
 PYTHON_VERSIONS: Final[list[str]] = ["3.11", "3.12", "3.13", "3.14"]
 EXTRAS: Final[list[str]] = ["monitoring", "aws", "tenant", "docs", "restql", "import-export", "dev-tools", "all"]
+DJANGO_VERSIONS: Final[list[str]] = ["4.2 (LTS)", "5.0", "5.1", "5.2 (LTS)", "6.0"]
+DJANGO_CONSTRAINTS: Final[dict[str, str]] = {
+    "4.2 (LTS)": ">=4.2,<5.0",
+    "5.0": ">=5.0,<5.1",
+    "5.1": ">=5.1,<5.2",
+    "5.2 (LTS)": ">=5.2,<6.0",
+    "6.0": ">=6.0,<7.0",
+}
+
+
+def _to_module_name(name: str) -> str:
+    """Normalize a user-supplied name to a valid Python module name (snake_case)."""
+    name = name.strip().lower()
+    name = re.sub(r"[\s\-]+", "_", name)
+    return re.sub(r"[^\w]", "", name)
 
 
 def _prompt_choice(prompt: str, choices: list[str]) -> str:
@@ -94,10 +111,7 @@ def _create_config_settings(
     actor: str,
 ) -> None:
     """Create config/settings/ package with base.py and dev.py."""
-    if actor:
-        url_module = f"apps.{module_name}.{actor}.api.v1.urls"
-    else:
-        url_module = f"apps.{module_name}.api.v1.urls"
+    url_module = f"apps.{module_name}.{actor}.api.v1.urls" if actor else f"apps.{module_name}.api.v1.urls"
 
     base_content = f'''"""
     Base settings for {service_name}.
@@ -191,6 +205,7 @@ def _create_pyproject_uv(
     project_dir: Path,
     project_name: str,
     python_version: str,
+    django_version: str,
     extras: list[str],
 ) -> None:
     """Create pyproject.toml for uv (PEP 621)."""
@@ -200,6 +215,7 @@ name = "{project_name}"
 version = "0.1.0"
 requires-python = ">={python_version}"
 dependencies = [
+    "django{django_version}",
     "pyms-django-chassis[{extras_str}]",
 ]
 
@@ -213,6 +229,9 @@ dev = [
     "pre-commit>=3.5.0",
 ]
 
+[tool.hatch.build.targets.wheel]
+packages = ["apps"]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -224,6 +243,7 @@ def _create_pyproject_poetry(
     project_dir: Path,
     project_name: str,
     python_version: str,
+    django_version: str,
     extras: list[str],
 ) -> None:
     """Create pyproject.toml for poetry."""
@@ -234,6 +254,7 @@ version = "0.1.0"
 
 [tool.poetry.dependencies]
 python = "^{python_version}"
+django = "{django_version}"
 pyms-django-chassis = {{version = "^1.0.0", extras = [{extras_list}]}}
 
 [tool.poetry.group.dev.dependencies]
@@ -268,7 +289,7 @@ WORKDIR /app
 COPY pyproject.toml poetry.lock ./
 RUN poetry install --no-dev"""
 
-    content = f'''# --- Builder stage ---
+    content = f"""# --- Builder stage ---
 FROM python:{python_version}-slim AS builder
 {install_cmd}
 
@@ -281,7 +302,7 @@ COPY . .
 RUN python manage.py collectstatic --noinput
 EXPOSE 8000
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
-'''
+"""
     (project_dir / "Dockerfile").write_text(content, encoding="utf-8")
 
 
@@ -291,27 +312,31 @@ def _create_docker_compose(
     multitenant: bool,
 ) -> None:
     """Create docker-compose.yml."""
-    services = f'''services:
+    services = """services:
   app:
     build: .
     ports:
       - "8000:8000"
-    env_file: .env'''
+    env_file: .env"""
 
     if multitenant:
-        services += '''
+        services += (
+            """
     depends_on:
       - db
 
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: ''' + project_name + '''
+      POSTGRES_DB: """
+            + project_name
+            + """
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
-'''
+"""
+        )
     else:
         services += "\n"
 
@@ -326,18 +351,18 @@ def _create_env_example(
     project_name: str,
 ) -> None:
     """Create .env.example."""
-    content = f'''DJANGO_SETTINGS_MODULE=config.settings.base
+    content = f"""DJANGO_SETTINGS_MODULE=config.settings.base
 SERVICE_NAME={service_name}
 BASE_PATH={base_path}
-MULTITENANT={"true" if multitenant else "false"}'''
+MULTITENANT={"true" if multitenant else "false"}"""
 
     if multitenant:
-        content += f'''
+        content += f"""
 DATABASE_HOST=localhost
 DATABASE_PORT=5432
 DATABASE_USER=postgres
 DATABASE_PASSWORD=postgres
-DATABASE_NAME={project_name}'''
+DATABASE_NAME={project_name}"""
 
     content += "\n"
     (project_dir / ".env.example").write_text(content, encoding="utf-8")
@@ -345,7 +370,7 @@ DATABASE_NAME={project_name}'''
 
 def _create_gitignore(project_dir: Path) -> None:
     """Create .gitignore."""
-    content = '''.venv/
+    content = """.venv/
 __pycache__/
 .env
 *.pyc
@@ -358,37 +383,37 @@ staticfiles/
 db.sqlite3
 .coverage
 htmlcov/
-'''
+"""
     (project_dir / ".gitignore").write_text(content, encoding="utf-8")
 
 
 def _create_pre_commit_config(project_dir: Path) -> None:
     """Create .pre-commit-config.yaml."""
-    content = '''repos:
+    content = """repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.4
     hooks:
       - id: ruff
         args: [--fix]
       - id: ruff-format
-'''
+"""
     (project_dir / ".pre-commit-config.yaml").write_text(content, encoding="utf-8")
 
 
 def _create_ruff_toml(project_dir: Path) -> None:
     """Create ruff.toml."""
-    content = '''target-version = "py311"
+    content = """target-version = "py311"
 line-length = 120
 
 [lint]
 select = ["E", "F", "W", "I", "N", "UP", "ANN", "B", "A", "COM", "C4", "PT", "RET", "SIM", "TCH", "ARG", "PTH", "ERA"]
-'''
+"""
     (project_dir / "ruff.toml").write_text(content, encoding="utf-8")
 
 
 def _create_readme(project_dir: Path, project_name: str) -> None:
     """Create README.md."""
-    content = f'''# {project_name}
+    content = f"""# {project_name}
 
 Microservice built with [pyms-django-chassis](https://github.com/pyms/pyms-django-chassis).
 
@@ -404,7 +429,7 @@ uv run python manage.py migrate
 # Start dev server
 uv run python manage.py runserver
 ```
-'''
+"""
     (project_dir / "README.md").write_text(content, encoding="utf-8")
 
 
@@ -414,9 +439,11 @@ def _collect_config_fallback(project_name: str) -> ProjectConfig:
     service_name = _prompt_text("SERVICE_NAME:", f"ms-{project_name}")
     base_path = _prompt_text("BASE_PATH:", f"/{project_name}")
     python_version = _prompt_choice("Python version:", PYTHON_VERSIONS)
+    django_label = _prompt_choice("Django version:", DJANGO_VERSIONS)
+    django_version = DJANGO_CONSTRAINTS[django_label]
     multitenant = _prompt_yes_no("Enable multi-tenancy?", default=False)
     selected_extras = _prompt_multi_select("Select extras to install:", EXTRAS)
-    module_name = _prompt_text("Initial DDD module name (aggregate root):", project_name)
+    module_name = _to_module_name(_prompt_text("Initial DDD module name (aggregate root):", project_name))
     actor_input = _prompt_text("Actor (optional, press Enter to skip):", "")
     actor = actor_input if actor_input else ""
 
@@ -425,6 +452,7 @@ def _collect_config_fallback(project_name: str) -> ProjectConfig:
         service_name=service_name,
         base_path=base_path,
         python_version=python_version,
+        django_version=django_version,
         multitenant=multitenant,
         extras=selected_extras,
         module_name=module_name,
@@ -436,6 +464,7 @@ def _collect_config(project_name: str) -> ProjectConfig | None:
     """Try TUI wizard; fall back to plain prompts if Textual is not installed."""
     try:
         from pyms_django.cli.tui import run_tui_wizard
+
         return run_tui_wizard(project_name)
     except ImportError:
         print("[pyms-django] Textual not installed. pip install 'pyms-django-chassis[tui]'")  # noqa: T201
@@ -462,9 +491,21 @@ def _generate_project(project_name: str, config: ProjectConfig) -> None:
     _create_config_asgi(project_dir)
 
     if config["package_manager"] == "uv":
-        _create_pyproject_uv(project_dir, project_name, config["python_version"], config["extras"])
+        _create_pyproject_uv(
+            project_dir,
+            project_name,
+            config["python_version"],
+            config["django_version"],
+            config["extras"],
+        )
     else:
-        _create_pyproject_poetry(project_dir, project_name, config["python_version"], config["extras"])
+        _create_pyproject_poetry(
+            project_dir,
+            project_name,
+            config["python_version"],
+            config["django_version"],
+            config["extras"],
+        )
 
     _create_dockerfile(project_dir, config["python_version"], config["package_manager"])
     _create_docker_compose(project_dir, project_name, config["multitenant"])
@@ -478,6 +519,7 @@ def _generate_project(project_name: str, config: ProjectConfig) -> None:
     original_dir = Path.cwd()
     os.chdir(project_dir)
     from pyms_django.base.management.commands.folderddd import run_folderddd
+
     run_folderddd(config["module_name"], actor)
     os.chdir(original_dir)
 

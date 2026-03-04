@@ -1,4 +1,5 @@
 """AWS Secrets Manager integration for pyms-django-chassis."""
+
 from __future__ import annotations
 
 import base64
@@ -33,7 +34,7 @@ class AwsSecretManager(SecretManagerResource):
         self._client: Any = None
         self._cache: dict[str, dict[str, str]] = {}
 
-    def _get_client(self) -> Any:
+    def _get_client(self) -> Any:  # noqa: ANN401
         """Return the boto3 Secrets Manager client, creating it if necessary.
 
         Returns:
@@ -41,6 +42,7 @@ class AwsSecretManager(SecretManagerResource):
         """
         if self._client is None:
             import boto3
+
             self._client = boto3.client(
                 service_name="secretsmanager",
                 region_name=self._region,

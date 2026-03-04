@@ -3,6 +3,7 @@
 Converts ``DomainException``, DRF exceptions, and unexpected errors into a
 standardised JSON error response with an optional OpenTelemetry trace ID.
 """
+
 from __future__ import annotations
 
 import logging
@@ -35,6 +36,7 @@ def get_trace_id() -> str:
     """
     try:
         from opentelemetry import trace
+
         span = trace.get_current_span()
         span_context = span.get_span_context()
         if span_context.trace_id:
@@ -46,7 +48,7 @@ def get_trace_id() -> str:
     return ""
 
 
-def process_error_message(field: str, errors: Any) -> dict[str, Any]:
+def process_error_message(field: str, errors: object) -> dict[str, Any]:
     """Convert a single field's validation errors into a standardised dict.
 
     Args:
@@ -62,12 +64,17 @@ def process_error_message(field: str, errors: Any) -> dict[str, Any]:
             if isinstance(error, dict):
                 details.append(error)
             else:
-                details.append({"code": str(error.code) if hasattr(error, "code") else "invalid", "description": str(error)})
+                details.append(
+                    {
+                        "code": str(error.code) if hasattr(error, "code") else "invalid",  # type: ignore[union-attr]
+                        "description": str(error),
+                    }
+                )
         return {"type": "INFO", "field": field, "details": details}
     return {"type": "ERROR", "code": "invalid", "description": str(errors)}
 
 
-def process_errors(errors: Any) -> list[dict[str, Any]]:
+def process_errors(errors: object) -> list[dict[str, Any]]:
     """Convert DRF validation error detail into a list of standardised dicts.
 
     Args:
@@ -134,7 +141,10 @@ def get_messages(exc: Exception) -> tuple[list[dict[str, Any]], int]:
             messages = [{"type": "ERROR", "code": exc.default_code, "description": str(exc.detail)}]
         return messages, exc.status_code
 
-    return [{"type": "ERROR", "code": "unknown_error", "description": "Internal Server Error"}], status.HTTP_500_INTERNAL_SERVER_ERROR
+    return (
+        [{"type": "ERROR", "code": "unknown_error", "description": "Internal Server Error"}],
+        status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )
 
 
 def _log_exception(exc: Exception) -> None:
@@ -187,7 +197,7 @@ def custom_exception_handler(exc: Exception, context: dict[str, Any]) -> Respons
     _log_exception(exc)
 
     # Let DRF handle its own exceptions first for standard processing
-    response = exception_handler(exc, context)
+    exception_handler(exc, context)
 
     messages, http_status = get_messages(exc)
     return handle_response(messages, http_status)

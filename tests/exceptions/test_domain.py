@@ -1,7 +1,5 @@
-"""
-    pyms-django-chassis
-    Tests for domain exceptions.
-"""
+"""Tests for pyms_django.exceptions.domain."""
+
 from __future__ import annotations
 
 import pytest

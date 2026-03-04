@@ -95,6 +95,29 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["pyms_django"]
 
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "--cov=pyms_django --cov-report=term-missing --cov-report=html"
+
+[tool.coverage.run]
+source = ["pyms_django"]
+omit = [
+    "pyms_django/cli/tui.py",
+    "pyms_django/tenants/migrations/*",
+    "pyms_django/settings/unit_tests.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "except ImportError:",
+]
+
 [tool.mypy]
 python_version = "3.11"
 strict = true
@@ -114,4 +137,4 @@ target-version = "py311"
 line-length = 120
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "N", "UP", "ANN", "B", "A", "COM", "C4", "PT", "RET", "SIM", "TCH", "ARG", "PTH", "ERA"]
+select = ["E", "F", "W", "I", "N", "UP", "ANN", "B", "A", "C4", "PT", "RET", "SIM", "TCH", "ARG", "PTH", "ERA"]

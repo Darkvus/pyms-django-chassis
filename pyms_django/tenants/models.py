@@ -1,4 +1,5 @@
 """Multi-tenant Django models for pyms-django-chassis."""
+
 from __future__ import annotations
 
 from django.db import models

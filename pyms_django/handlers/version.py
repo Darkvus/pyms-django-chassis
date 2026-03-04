@@ -1,4 +1,5 @@
 """Service version resolution utilities for pyms-django-chassis."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -25,5 +26,6 @@ def get_version_from_pyproject(base_dir: str | Path | None = None) -> str:
     pyproject_path = Path(base_dir) / "pyproject.toml"
     if pyproject_path.exists():
         data = toml.load(pyproject_path)
-        return str(data.get("project", {}).get("version", data.get("tool", {}).get("poetry", {}).get("version", "unknown")))
+        poetry_version = data.get("tool", {}).get("poetry", {}).get("version", "unknown")  # type: ignore[union-attr]
+        return str(data.get("project", {}).get("version", poetry_version))  # type: ignore[union-attr]
     return "unknown"

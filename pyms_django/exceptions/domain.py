@@ -3,22 +3,26 @@
 Provides ``TypeException``, ``LogLevel``, ``ErrorDetail``, ``ErrorMessage``,
 and ``DomainException`` as building blocks for business-rule exceptions.
 """
+
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from enum import Enum
+from dataclasses import dataclass
+from dataclasses import field as dc_field
+from enum import StrEnum
 
 
-class TypeException(str, Enum):
+class TypeException(StrEnum):
     """Enum of domain exception categories."""
+
     VALIDATION = "VALIDATION"
     BUSINESS = "BUSINESS"
     PERMISSION = "PERMISSION"
     TECHNICAL = "TECHNICAL"
 
 
-class LogLevel(str, Enum):
+class LogLevel(StrEnum):
     """Enum of log levels used when a ``DomainException`` is logged."""
+
     DEBUG = "debug"
     INFO = "info"
     WARNING = "warning"
@@ -54,10 +58,10 @@ class ErrorMessage:
     code: str = ""
     description: str = ""
     field: str = ""
-    details: list[ErrorDetail] = field(default_factory=list)
+    details: list[ErrorDetail] = dc_field(default_factory=list)
 
 
-class DomainException(Exception):
+class DomainException(Exception):  # noqa: N818
     """Base class for domain-specific exceptions.
 
     Subclass to define business-rule exceptions with a fixed code, description,
@@ -78,6 +82,7 @@ class DomainException(Exception):
                 type = TypeException.BUSINESS
                 log_level = LogLevel.WARNING
     """
+
     code: str = "domain_error"
     description: str = ""
     type: TypeException = TypeException.TECHNICAL
@@ -106,9 +111,17 @@ class DomainException(Exception):
             List of ``ErrorMessage`` instances describing the exception.
         """
         if self.details:
-            return [ErrorMessage(
-                type="ERROR", field=self.field, details=self.details
-            )]
-        return [ErrorMessage(
-            type="ERROR", code=self.code, description=self.description
-        )]
+            return [
+                ErrorMessage(
+                    type="ERROR",
+                    field=self.field,
+                    details=self.details,
+                )
+            ]
+        return [
+            ErrorMessage(
+                type="ERROR",
+                code=self.code,
+                description=self.description,
+            )
+        ]

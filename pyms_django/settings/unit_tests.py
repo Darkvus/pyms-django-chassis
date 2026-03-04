@@ -1,7 +1,8 @@
 """Minimal Django settings for running pyms-django-chassis unit tests."""
+
 from __future__ import annotations
 
-from typing import Any, Final
+from typing import Final
 
 DATABASES: Final[dict[str, dict[str, str]]] = {
     "default": {
@@ -14,4 +15,11 @@ PASSWORD_HASHERS: Final[list[str]] = [
     "django.contrib.auth.hashers.MD5PasswordHasher",
 ]
 
-DEFAULT_FILE_STORAGE: Final[str] = "django.core.files.storage.InMemoryStorage"
+STORAGES: Final[dict[str, dict[str, str]]] = {
+    "default": {
+        "BACKEND": "django.core.files.storage.InMemoryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}

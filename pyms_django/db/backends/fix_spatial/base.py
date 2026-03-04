@@ -1,8 +1,8 @@
 """Spatialite backend compatibility fix for pyms-django-chassis."""
+
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 logger = logging.getLogger(__name__)
 

@@ -1,4 +1,5 @@
 """WSGI application entry point for pyms-django-chassis."""
+
 from __future__ import annotations
 
 import os

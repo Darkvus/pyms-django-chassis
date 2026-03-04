@@ -1,8 +1,9 @@
 """Environment and cloud secret manager variable resolver for pyms-django-chassis."""
+
 from __future__ import annotations
 
 import os
-from typing import Any, Final
+from typing import Final
 
 SECRET_MANAGER_PREFIX: Final[str] = "ENC_"
 
@@ -49,8 +50,9 @@ class ConfigVars:
         provider = os.environ.get("SECRET_MANAGER_PROVIDER", "AWS").upper()
         if provider == "AWS":
             from pyms_django.cloud.aws.secret_manager import AwsSecretManager
+
             manager = AwsSecretManager()
-            secret_key = name[len(SECRET_MANAGER_PREFIX):]
+            secret_key = name[len(SECRET_MANAGER_PREFIX) :]
             return manager.get_secret(secret_key)
         msg = f"Unsupported secret manager provider: {provider}"
         raise ValueError(msg)

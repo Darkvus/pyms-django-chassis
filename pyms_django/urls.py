@@ -3,9 +3,8 @@
 Registers health-check, version, dependencies, and optionally
 schema (drf-spectacular), admin, and debug toolbar endpoints.
 """
-from __future__ import annotations
 
-from typing import Any
+from __future__ import annotations
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
@@ -34,11 +33,11 @@ def build_path(route: str) -> str:
     return ""
 
 
-def health_check(request: HttpRequest) -> HttpResponse:
+def health_check(_request: HttpRequest) -> HttpResponse:
     """Respond with HTTP 200 OK for liveness probes.
 
     Args:
-        request: Incoming HTTP request.
+        _request: Incoming HTTP request.
 
     Returns:
         Plain-text ``HttpResponse`` with body ``"OK"``.
@@ -76,12 +75,14 @@ for app_urls, app_base_path in local_apps:
 # Conditional admin
 if getattr(settings, "ADMIN_ENABLED", False):
     from django.contrib import admin
+
     urlpatterns.append(path(build_path("admin"), admin.site.urls))
 
 # Conditional debug toolbar
 if getattr(settings, "DEBUG", False):
     try:
         import debug_toolbar
+
         urlpatterns.append(path("__debug__/", include(debug_toolbar.urls)))
     except ImportError:
         pass

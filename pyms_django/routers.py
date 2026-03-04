@@ -3,6 +3,7 @@
 Provides ``ChassisRouter`` and ``ConfigViewSet`` for registering versioned
 DRF viewsets with a common prefix and optional sub-prefix support.
 """
+
 from __future__ import annotations
 
 from typing import TypeVar
@@ -11,11 +12,10 @@ from django.conf import settings
 from rest_framework.routers import DefaultRouter
 from rest_framework.viewsets import GenericViewSet
 
-
 T_GenericViewSet = TypeVar("T_GenericViewSet", bound=GenericViewSet)
 
 
-class ConfigViewSet(object):
+class ConfigViewSet:
     """Configuration holder for registering a viewset in ``ChassisRouter``.
 
     Attributes:
@@ -39,7 +39,7 @@ class ConfigViewSet(object):
         version: str = settings.API_VERSION,
         prefix_detail: bool = False,
         sub_prefix: str | None = None,
-    ):
+    ) -> None:
         """Initialize ``ConfigViewSet``.
 
         Args:
@@ -63,7 +63,7 @@ class ChassisRouter(DefaultRouter):
     routes = DefaultRouter.routes
     extra_routes = []
 
-    def __init__(self, common_prefix: str = "", *args, **kwargs):
+    def __init__(self, common_prefix: str = "", *args: object, **kwargs: object) -> None:
         """Initialize ``ChassisRouter`` with an optional common prefix.
 
         Args:
@@ -82,8 +82,8 @@ class ChassisRouter(DefaultRouter):
         version: str = settings.API_VERSION,
         sub_prefix: str | None = None,
         basename: str | None = None,
-        **kwargs,
-    ):
+        **kwargs: object,
+    ) -> None:
         """Register a viewset with a versioned and prefixed URL.
 
         Builds the full URL pattern as ``{version}/{common_prefix}/{prefix}/{sub_prefix}``
@@ -98,11 +98,7 @@ class ChassisRouter(DefaultRouter):
             **kwargs: Additional arguments forwarded to ``DefaultRouter.register``.
         """
 
-        modified_prefix = (
-            f"{version}/{self.common_prefix}/{prefix}"
-            if self.common_prefix
-            else f"{version}/{prefix}"
-        )
+        modified_prefix = f"{version}/{self.common_prefix}/{prefix}" if self.common_prefix else f"{version}/{prefix}"
 
         if sub_prefix:
             modified_prefix += f"/{sub_prefix}"
@@ -110,8 +106,11 @@ class ChassisRouter(DefaultRouter):
         super().register(modified_prefix, viewset, basename, **kwargs)
 
     def register_multiple_viewsets(
-        self, prefix: str, config_viewsets: list[ConfigViewSet], **kwargs
-    ):
+        self,
+        prefix: str,
+        config_viewsets: list[ConfigViewSet],
+        **kwargs: object,
+    ) -> None:
         """Register multiple viewsets sharing the same URL prefix.
 
         Args:
@@ -151,7 +150,7 @@ class ChassisRouter(DefaultRouter):
                 **kwargs,
             )
 
-    def get_routes(self, viewset):
+    def get_routes(self, viewset: object) -> list[object]:
         """Return the combined route list for a given viewset.
 
         Prepends any custom routes defined on the viewset before the default routes.

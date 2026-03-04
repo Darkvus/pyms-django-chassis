@@ -1,4 +1,5 @@
 """Default Django settings for pyms-django-chassis microservices."""
+
 from __future__ import annotations
 
 import os
@@ -14,6 +15,7 @@ BASE_PATH: str = ""
 MULTITENANT: bool = False
 ADMIN_ENABLED: bool = False
 LOCAL_APPS: list[tuple[str, str]] = []
+TENANT_APPS: list[str] = []
 
 # --- Paths ---
 BASE_DIR: Final[Path] = Path(__file__).resolve().parent.parent.parent
@@ -45,20 +47,24 @@ INSTALLED_APPS: list[str] = [
 ]
 
 # Conditionally add tenant apps
-try:
-    import django_tenants  # noqa: F401
-    INSTALLED_APPS = [
-        "django_tenants",
-        *INSTALLED_APPS,
-        "pyms_django.tenants",
-    ]
-    DATABASE_ROUTERS = ["django_tenants.routers.TenantSyncRouter", *DATABASE_ROUTERS]
-except ImportError:
-    pass
+if MULTITENANT:
+    try:
+        import django_tenants  # noqa: F401
+
+        INSTALLED_APPS = [
+            "django_tenants",
+            *SHARED_APPS,
+            "pyms_django.tenants",
+            *TENANT_APPS,
+        ]
+        DATABASE_ROUTERS = ["django_tenants.routers.TenantSyncRouter", *DATABASE_ROUTERS]
+    except ImportError:
+        pass
 
 # Conditionally add drf-spectacular
 try:
     import drf_spectacular  # noqa: F401
+
     INSTALLED_APPS.append("drf_spectacular")
 except ImportError:
     pass
@@ -66,6 +72,7 @@ except ImportError:
 # Conditionally add import-export
 try:
     import import_export  # noqa: F401
+
     INSTALLED_APPS.append("import_export")
 except ImportError:
     pass
@@ -73,6 +80,7 @@ except ImportError:
 # Conditionally add debug toolbar
 try:
     import debug_toolbar  # noqa: F401
+
     if DEBUG:
         INSTALLED_APPS.append("debug_toolbar")
 except ImportError:
@@ -81,6 +89,7 @@ except ImportError:
 # Conditionally add django-extensions
 try:
     import django_extensions  # noqa: F401
+
     INSTALLED_APPS.append("django_extensions")
 except ImportError:
     pass
@@ -88,9 +97,21 @@ except ImportError:
 # --- Middleware ---
 MIDDLEWARE: list[str] = list(SHARED_MIDDLEWARE)
 
+if MULTITENANT:
+    try:
+        import django_tenants  # noqa: F401
+
+        MIDDLEWARE = [
+            "django_tenants.middleware.main.TenantMainMiddleware",
+            *MIDDLEWARE,
+        ]
+    except ImportError:
+        pass
+
 if DEBUG:
     try:
         import debug_toolbar  # noqa: F401
+
         MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")
     except ImportError:
         pass
@@ -124,6 +145,14 @@ DATABASES: dict[str, dict[str, Any]] = {
     },
 }
 
+if MULTITENANT:
+    try:
+        import django_tenants  # noqa: F401
+
+        DATABASES["default"]["ENGINE"] = "django_tenants.postgresql_backend"
+    except ImportError:
+        pass
+
 ACTIVE_DATABASE_READ: bool = os.environ.get("ACTIVE_DATABASE_READ", "false").lower() == "true"
 if ACTIVE_DATABASE_READ:
     DATABASES["read_db"] = {
@@ -152,7 +181,14 @@ USE_TZ: bool = True
 # --- Static Files ---
 STATIC_URL: str = "/static/"
 STATIC_ROOT: str = str(BASE_DIR / "staticfiles")
-STATICFILES_STORAGE: str = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+STORAGES: dict[str, dict[str, str]] = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # --- Default PK ---
 DEFAULT_AUTO_FIELD: str = "django.db.models.BigAutoField"
@@ -180,6 +216,7 @@ REST_FRAMEWORK: dict[str, Any] = {
 # Add drf-spectacular schema class if available
 try:
     import drf_spectacular  # noqa: F401
+
     REST_FRAMEWORK["DEFAULT_SCHEMA_CLASS"] = "drf_spectacular.openapi.AutoSchema"
 except ImportError:
     pass
@@ -209,7 +246,7 @@ LOGGING: dict[str, Any] = {
     "filters": {
         "tenant_context": {
             "()": "django.utils.log.CallbackFilter",
-            "callback": lambda record: True,
+            "callback": lambda _: True,
         },
     },
     "handlers": {
@@ -241,6 +278,7 @@ LOGGING: dict[str, Any] = {
 try:
     from opentelemetry.propagate import set_global_textmap
     from opentelemetry.propagators.b3 import B3Format
+
     set_global_textmap(B3Format())
 except ImportError:
     pass

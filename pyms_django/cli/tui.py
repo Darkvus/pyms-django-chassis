@@ -1,7 +1,8 @@
 """Interactive TUI wizard for pyms-django startproject using Textual."""
+
 from __future__ import annotations
 
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -9,21 +10,24 @@ from textual.containers import Horizontal, ScrollableContainer, Vertical
 from textual.screen import Screen
 from textual.widgets import Button, Checkbox, Footer, Header, Input, Label, RadioButton, RadioSet, Rule, Static, Switch
 
-from pyms_django.cli.types import ProjectConfig
+from pyms_django.cli.startproject import DJANGO_CONSTRAINTS, DJANGO_VERSIONS, _to_module_name
+
+if TYPE_CHECKING:
+    from pyms_django.cli.types import ProjectConfig
 
 PYTHON_VERSIONS: Final[list[str]] = ["3.11", "3.12", "3.13", "3.14"]
 EXTRAS: Final[list[str]] = ["monitoring", "aws", "tenant", "docs", "restql", "import-export", "dev-tools", "all"]
 SELECTABLE_EXTRAS: Final[list[str]] = [e for e in EXTRAS if e != "all"]
 
 EXTRAS_INFO: Final[dict[str, str]] = {
-    "monitoring":    "OpenTelemetry tracing & OTLP export",
-    "aws":           "AWS SDK — Secrets Manager, S3, etc.",
-    "tenant":        "Schema-based tenant isolation (django-tenants + PostgreSQL)",
-    "docs":          "OpenAPI / Swagger docs (drf-spectacular)",
-    "restql":        "Dynamic field filtering via query params",
+    "monitoring": "OpenTelemetry tracing & OTLP export",
+    "aws": "AWS SDK — Secrets Manager, S3, etc.",
+    "tenant": "Schema-based tenant isolation (django-tenants + PostgreSQL)",
+    "docs": "OpenAPI / Swagger docs (drf-spectacular)",
+    "restql": "Dynamic field filtering via query params",
     "import-export": "CSV & XLSX import / export",
-    "dev-tools":     "Debug toolbar & django-extensions",
-    "all":           "All of the above, bundled",
+    "dev-tools": "Debug toolbar & django-extensions",
+    "all": "All of the above, bundled",
 }
 
 _COMMON_CSS = """
@@ -164,6 +168,12 @@ class ProjectSetupScreen(Screen[dict]):  # type: ignore[type-arg]
             for i, v in enumerate(PYTHON_VERSIONS):
                 yield RadioButton(v, value=(i == 1), id=f"py_{v.replace('.', '_')}")
 
+        yield Label("Django version", classes="section-label")
+        with RadioSet(id="dj_version"):
+            for i, v in enumerate(DJANGO_VERSIONS):
+                # Default: 5.2 (LTS)  # noqa: ERA001
+                yield RadioButton(v, value=(v == "5.2 (LTS)"), id=f"dj_{i}")
+
         yield Static("", id="error_msg", classes="error-label")
 
         with Horizontal(classes="button-row"):
@@ -188,12 +198,19 @@ class ProjectSetupScreen(Screen[dict]):  # type: ignore[type-arg]
         py_set = self.query_one("#py_version", RadioSet)
         python_version = PYTHON_VERSIONS[py_set.pressed_index]
 
-        self.dismiss({
-            "package_manager": package_manager,
-            "service_name": service_name,
-            "base_path": base_path,
-            "python_version": python_version,
-        })
+        dj_set = self.query_one("#dj_version", RadioSet)
+        django_label = DJANGO_VERSIONS[dj_set.pressed_index]
+        django_version = DJANGO_CONSTRAINTS[django_label]
+
+        self.dismiss(
+            {
+                "package_manager": package_manager,
+                "service_name": service_name,
+                "base_path": base_path,
+                "python_version": python_version,
+                "django_version": django_version,
+            }
+        )
 
 
 class FeaturesScreen(Screen[dict]):  # type: ignore[type-arg]
@@ -211,12 +228,11 @@ class FeaturesScreen(Screen[dict]):  # type: ignore[type-arg]
         yield Label("Step 2 of 3 — Features", classes="wizard-title")
 
         # ── Multi-tenancy ─────────────────────────────────────────────
-        with Vertical(classes="mt-panel"):
-            with Horizontal(classes="mt-row"):
-                yield Switch(value=False, id="multitenant")
-                with Vertical():
-                    yield Label("Enable multi-tenant support", classes="mt-title")
-                    yield Label("Schema isolation via django-tenants — requires PostgreSQL", classes="mt-hint")
+        with Vertical(classes="mt-panel"), Horizontal(classes="mt-row"):
+            yield Switch(value=False, id="multitenant")
+            with Vertical():
+                yield Label("Enable multi-tenant support", classes="mt-title")
+                yield Label("Schema isolation via django-tenants — requires PostgreSQL", classes="mt-hint")
 
         # ── Extras ────────────────────────────────────────────────────
         with Horizontal(classes="extras-hdr"):
@@ -242,10 +258,7 @@ class FeaturesScreen(Screen[dict]):  # type: ignore[type-arg]
         yield Footer()
 
     def _update_counter(self) -> None:
-        count = sum(
-            1 for e in SELECTABLE_EXTRAS
-            if self.query_one(f"#extra_{e.replace('-', '_')}", Checkbox).value
-        )
+        count = sum(1 for e in SELECTABLE_EXTRAS if self.query_one(f"#extra_{e.replace('-', '_')}", Checkbox).value)
         self.query_one("#extras_counter", Static).update(f"{count} / {len(SELECTABLE_EXTRAS)} selected")
 
     def on_checkbox_changed(self, event: Checkbox.Changed) -> None:
@@ -260,8 +273,7 @@ class FeaturesScreen(Screen[dict]):  # type: ignore[type-arg]
             else:
                 # If all individual are checked, auto-check "all"; otherwise uncheck it
                 all_checked = all(
-                    self.query_one(f"#extra_{e.replace('-', '_')}", Checkbox).value
-                    for e in SELECTABLE_EXTRAS
+                    self.query_one(f"#extra_{e.replace('-', '_')}", Checkbox).value for e in SELECTABLE_EXTRAS
                 )
                 self.query_one("#extra_all", Checkbox).value = all_checked
         finally:
@@ -283,8 +295,7 @@ class FeaturesScreen(Screen[dict]):  # type: ignore[type-arg]
             selected_extras: list[str] = ["all"]
         else:
             selected_extras = [
-                e for e in SELECTABLE_EXTRAS
-                if self.query_one(f"#extra_{e.replace('-', '_')}", Checkbox).value
+                e for e in SELECTABLE_EXTRAS if self.query_one(f"#extra_{e.replace('-', '_')}", Checkbox).value
             ]
 
         if not selected_extras:
@@ -292,10 +303,12 @@ class FeaturesScreen(Screen[dict]):  # type: ignore[type-arg]
             return
 
         self.query_one("#error_msg", Static).update("")
-        self.dismiss({
-            "multitenant": multitenant,
-            "extras": selected_extras,
-        })
+        self.dismiss(
+            {
+                "multitenant": multitenant,
+                "extras": selected_extras,
+            }
+        )
 
 
 class DDDScreen(Screen[dict]):  # type: ignore[type-arg]
@@ -339,7 +352,7 @@ class DDDScreen(Screen[dict]):  # type: ignore[type-arg]
         if event.button.id != "btn_next":
             return
 
-        module_name = str(self.query_one("#module_name", Input).value).strip()
+        module_name = _to_module_name(str(self.query_one("#module_name", Input).value))
         if not module_name:
             self.query_one("#error_msg", Static).update("Module name cannot be empty.")
             return
@@ -371,6 +384,7 @@ class ConfirmationScreen(Screen[bool]):
             f"  SERVICE_NAME    : {c['service_name']}\n"
             f"  BASE_PATH       : {c['base_path']}\n"
             f"  Python version  : {c['python_version']}\n"
+            f"  Django version  : {c['django_version']}\n"
             f"  Multi-tenant    : {c['multitenant']}\n"
             f"  Extras          : {extras_str}\n"
             f"  Module name     : {c['module_name']}\n"
@@ -435,6 +449,7 @@ class StartProjectApp(App[None]):
             "service_name": str(self._setup_data.get("service_name", "")),
             "base_path": str(self._setup_data.get("base_path", "")),
             "python_version": str(self._setup_data.get("python_version", "3.12")),
+            "django_version": str(self._setup_data.get("django_version", ">=5.2,<6.0")),
             "multitenant": bool(self._features_data.get("multitenant", False)),
             "extras": list(self._features_data.get("extras", [])),  # type: ignore[arg-type]
             "module_name": str(data.get("module_name", "")),

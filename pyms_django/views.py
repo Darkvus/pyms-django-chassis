@@ -1,17 +1,20 @@
 """API views for service metadata endpoints in pyms-django-chassis."""
+
 from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import toml
 from django.conf import settings
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
-from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+if TYPE_CHECKING:
+    from rest_framework.request import Request
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +25,7 @@ class VersioningView(APIView):
     permission_classes = [AllowAny]
     authentication_classes: list[Any] = []
 
-    def get(self, request: Request) -> Response:
+    def get(self, request: Request) -> Response:  # noqa: ARG002
         """Return the artifact version.
 
         Args:
@@ -31,6 +34,15 @@ class VersioningView(APIView):
         Returns:
             JSON response with ``{"version": "<artifact_version>"}``.
         """
+        pyproject_path = Path.cwd() / "pyproject.toml"
+        if pyproject_path.exists():
+            try:
+                data = toml.load(pyproject_path)
+                version = data.get("project", {}).get("version")
+                if version:
+                    return Response({"version": version})
+            except Exception:
+                logger.exception("Failed to read pyproject.toml")
         return Response({"version": getattr(settings, "ARTIFACT_VERSION", "unknown")})
 
 
@@ -40,7 +52,7 @@ class DependenciesTreeView(APIView):
     permission_classes = [AllowAny]
     authentication_classes: list[Any] = []
 
-    def get(self, request: Request) -> Response:
+    def get(self, request: Request) -> Response:  # noqa: ARG002
         """Return the list of project dependencies.
 
         Args:
