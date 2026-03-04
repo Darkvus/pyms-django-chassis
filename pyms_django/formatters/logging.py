@@ -38,13 +38,18 @@ class CustomJsonFormatter(JsonFormatter):
             span = trace.get_current_span()
             span_context = span.get_span_context()
             if span_context.trace_id:
-                log_record["trace"] = hex(span_context.trace_id)[2:]
-                log_record["span"] = hex(span_context.span_id)[2:]
+                log_record["trace"] = f"{span_context.trace_id:032x}"
+                log_record["span"] = f"{span_context.span_id:016x}"
 
             parent_span = getattr(span, "parent", None)
             if parent_span and hasattr(parent_span, "span_id"):
-                log_record["parent"] = hex(parent_span.span_id)[2:]
+                log_record["parent"] = f"{parent_span.span_id:016x}"
         except ImportError:
-            pass
+            # OTel not installed — fall back to context vars populated by TracingMiddleware
+            from pyms_django.trace_context import span_id_var, trace_id_var
+            tid = trace_id_var.get()
+            if tid:
+                log_record["trace"] = tid
+                log_record["span"] = span_id_var.get()
         except Exception:
             pass

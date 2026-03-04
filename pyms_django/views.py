@@ -31,6 +31,15 @@ class VersioningView(APIView):
         Returns:
             JSON response with ``{"version": "<artifact_version>"}``.
         """
+        pyproject_path = Path.cwd() / "pyproject.toml"
+        if pyproject_path.exists():
+            try:
+                data = toml.load(pyproject_path)
+                version = data.get("project", {}).get("version")
+                if version:
+                    return Response({"version": version})
+            except Exception:
+                logger.exception("Failed to read pyproject.toml")
         return Response({"version": getattr(settings, "ARTIFACT_VERSION", "unknown")})
 
 

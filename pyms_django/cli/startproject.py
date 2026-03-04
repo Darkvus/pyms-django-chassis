@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 from typing import Final
 
@@ -9,6 +10,21 @@ from pyms_django.cli.types import ProjectConfig
 
 PYTHON_VERSIONS: Final[list[str]] = ["3.11", "3.12", "3.13", "3.14"]
 EXTRAS: Final[list[str]] = ["monitoring", "aws", "tenant", "docs", "restql", "import-export", "dev-tools", "all"]
+DJANGO_VERSIONS: Final[list[str]] = ["4.2 (LTS)", "5.0", "5.1", "5.2 (LTS)", "6.0"]
+DJANGO_CONSTRAINTS: Final[dict[str, str]] = {
+    "4.2 (LTS)": ">=4.2,<5.0",
+    "5.0": ">=5.0,<5.1",
+    "5.1": ">=5.1,<5.2",
+    "5.2 (LTS)": ">=5.2,<6.0",
+    "6.0": ">=6.0,<7.0",
+}
+
+
+def _to_module_name(name: str) -> str:
+    """Normalize a user-supplied name to a valid Python module name (snake_case)."""
+    name = name.strip().lower()
+    name = re.sub(r"[\s\-]+", "_", name)
+    return re.sub(r"[^\w]", "", name)
 
 
 def _prompt_choice(prompt: str, choices: list[str]) -> str:
@@ -191,6 +207,7 @@ def _create_pyproject_uv(
     project_dir: Path,
     project_name: str,
     python_version: str,
+    django_version: str,
     extras: list[str],
 ) -> None:
     """Create pyproject.toml for uv (PEP 621)."""
@@ -200,6 +217,7 @@ name = "{project_name}"
 version = "0.1.0"
 requires-python = ">={python_version}"
 dependencies = [
+    "django{django_version}",
     "pyms-django-chassis[{extras_str}]",
 ]
 
@@ -213,6 +231,9 @@ dev = [
     "pre-commit>=3.5.0",
 ]
 
+[tool.hatch.build.targets.wheel]
+packages = ["apps"]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -224,6 +245,7 @@ def _create_pyproject_poetry(
     project_dir: Path,
     project_name: str,
     python_version: str,
+    django_version: str,
     extras: list[str],
 ) -> None:
     """Create pyproject.toml for poetry."""
@@ -234,6 +256,7 @@ version = "0.1.0"
 
 [tool.poetry.dependencies]
 python = "^{python_version}"
+django = "{django_version}"
 pyms-django-chassis = {{version = "^1.0.0", extras = [{extras_list}]}}
 
 [tool.poetry.group.dev.dependencies]
@@ -414,9 +437,11 @@ def _collect_config_fallback(project_name: str) -> ProjectConfig:
     service_name = _prompt_text("SERVICE_NAME:", f"ms-{project_name}")
     base_path = _prompt_text("BASE_PATH:", f"/{project_name}")
     python_version = _prompt_choice("Python version:", PYTHON_VERSIONS)
+    django_label = _prompt_choice("Django version:", DJANGO_VERSIONS)
+    django_version = DJANGO_CONSTRAINTS[django_label]
     multitenant = _prompt_yes_no("Enable multi-tenancy?", default=False)
     selected_extras = _prompt_multi_select("Select extras to install:", EXTRAS)
-    module_name = _prompt_text("Initial DDD module name (aggregate root):", project_name)
+    module_name = _to_module_name(_prompt_text("Initial DDD module name (aggregate root):", project_name))
     actor_input = _prompt_text("Actor (optional, press Enter to skip):", "")
     actor = actor_input if actor_input else ""
 
@@ -425,6 +450,7 @@ def _collect_config_fallback(project_name: str) -> ProjectConfig:
         service_name=service_name,
         base_path=base_path,
         python_version=python_version,
+        django_version=django_version,
         multitenant=multitenant,
         extras=selected_extras,
         module_name=module_name,
@@ -462,9 +488,9 @@ def _generate_project(project_name: str, config: ProjectConfig) -> None:
     _create_config_asgi(project_dir)
 
     if config["package_manager"] == "uv":
-        _create_pyproject_uv(project_dir, project_name, config["python_version"], config["extras"])
+        _create_pyproject_uv(project_dir, project_name, config["python_version"], config["django_version"], config["extras"])
     else:
-        _create_pyproject_poetry(project_dir, project_name, config["python_version"], config["extras"])
+        _create_pyproject_poetry(project_dir, project_name, config["python_version"], config["django_version"], config["extras"])
 
     _create_dockerfile(project_dir, config["python_version"], config["package_manager"])
     _create_docker_compose(project_dir, project_name, config["multitenant"])

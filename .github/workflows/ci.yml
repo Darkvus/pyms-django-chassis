@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          python-version: "3.13"
+          enable-cache: true
+
+      - run: uv sync --group dev
+
+      - name: Ruff check
+        run: uv run ruff check pyms_django tests
+
+      - name: Ruff format
+        run: uv run ruff format --check pyms_django tests
+
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+
+      - run: uv sync --group dev
+
+      - name: Run tests
+        run: uv run pytest tests/ --tb=short -q --no-cov
+
+  # ─── Only on Pull Requests: ensure the version is not already released ──────
+  version-check:
+    name: Version is new
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from pyproject.toml
+        id: ver
+        run: |
+          VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Detected version: $VERSION"
+
+      - name: Version must be bumped from main
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          MAIN_VERSION=$(git show origin/main:pyproject.toml 2>/dev/null | grep '^version = ' | sed 's/version = "\(.*\)"/\1/' || echo "0.0.0")
+
+          echo "PR version   : $VERSION"
+          echo "main version : $MAIN_VERSION"
+
+          if [ "$VERSION" = "$MAIN_VERSION" ]; then
+            echo "::error::Version $VERSION is the same as main. Bump the version in pyproject.toml before merging."
+            exit 1
+          fi
+
+      - name: Version must not exist on PyPI
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://pypi.org/pypi/pyms-django-chassis/$VERSION/json")
+
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "::error::Version $VERSION already exists on PyPI. Choose a higher version."
+            exit 1
+          else
+            echo "Version $VERSION is not yet on PyPI."
+          fi
+
+      - name: Version tag must not exist in the repository
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          if git ls-remote --tags origin "refs/tags/v$VERSION" | grep -q "v$VERSION"; then
+            echo "::error::Tag v$VERSION already exists. Choose a higher version."
+            exit 1
+          else
+            echo "Tag v$VERSION does not exist yet."
+          fi

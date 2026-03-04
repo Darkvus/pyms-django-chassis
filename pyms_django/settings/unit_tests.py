@@ -14,4 +14,11 @@ PASSWORD_HASHERS: Final[list[str]] = [
     "django.contrib.auth.hashers.MD5PasswordHasher",
 ]
 
-DEFAULT_FILE_STORAGE: Final[str] = "django.core.files.storage.InMemoryStorage"
+STORAGES: Final[dict[str, dict[str, str]]] = {
+    "default": {
+        "BACKEND": "django.core.files.storage.InMemoryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}

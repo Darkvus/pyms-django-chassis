@@ -14,6 +14,7 @@ BASE_PATH: str = ""
 MULTITENANT: bool = False
 ADMIN_ENABLED: bool = False
 LOCAL_APPS: list[tuple[str, str]] = []
+TENANT_APPS: list[str] = []
 
 # --- Paths ---
 BASE_DIR: Final[Path] = Path(__file__).resolve().parent.parent.parent
@@ -45,16 +46,19 @@ INSTALLED_APPS: list[str] = [
 ]
 
 # Conditionally add tenant apps
-try:
-    import django_tenants  # noqa: F401
-    INSTALLED_APPS = [
-        "django_tenants",
-        *INSTALLED_APPS,
-        "pyms_django.tenants",
-    ]
-    DATABASE_ROUTERS = ["django_tenants.routers.TenantSyncRouter", *DATABASE_ROUTERS]
-except ImportError:
-    pass
+if MULTITENANT:
+    try:
+        import django_tenants  # noqa: F401
+        INSTALLED_APPS = [
+            "django_tenants",
+            *SHARED_APPS,
+            "pyms_django.tenants",
+            *TENANT_APPS,
+        ]
+        DATABASE_ROUTERS = ["django_tenants.routers.TenantSyncRouter", *DATABASE_ROUTERS]
+        DATABASES["default"]["ENGINE"] = "django_tenants.postgresql_backend"
+    except ImportError:
+        pass
 
 # Conditionally add drf-spectacular
 try:
@@ -87,6 +91,16 @@ except ImportError:
 
 # --- Middleware ---
 MIDDLEWARE: list[str] = list(SHARED_MIDDLEWARE)
+
+if MULTITENANT:
+    try:
+        import django_tenants  # noqa: F401
+        MIDDLEWARE = [
+            "django_tenants.middleware.main.TenantMainMiddleware",
+            *MIDDLEWARE,
+        ]
+    except ImportError:
+        pass
 
 if DEBUG:
     try:
@@ -152,7 +166,14 @@ USE_TZ: bool = True
 # --- Static Files ---
 STATIC_URL: str = "/static/"
 STATIC_ROOT: str = str(BASE_DIR / "staticfiles")
-STATICFILES_STORAGE: str = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+STORAGES: dict[str, dict[str, str]] = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # --- Default PK ---
 DEFAULT_AUTO_FIELD: str = "django.db.models.BigAutoField"

@@ -9,6 +9,7 @@ from textual.containers import Horizontal, ScrollableContainer, Vertical
 from textual.screen import Screen
 from textual.widgets import Button, Checkbox, Footer, Header, Input, Label, RadioButton, RadioSet, Rule, Static, Switch
 
+from pyms_django.cli.startproject import DJANGO_CONSTRAINTS, DJANGO_VERSIONS, _to_module_name
 from pyms_django.cli.types import ProjectConfig
 
 PYTHON_VERSIONS: Final[list[str]] = ["3.11", "3.12", "3.13", "3.14"]
@@ -164,6 +165,12 @@ class ProjectSetupScreen(Screen[dict]):  # type: ignore[type-arg]
             for i, v in enumerate(PYTHON_VERSIONS):
                 yield RadioButton(v, value=(i == 1), id=f"py_{v.replace('.', '_')}")
 
+        yield Label("Django version", classes="section-label")
+        with RadioSet(id="dj_version"):
+            for i, v in enumerate(DJANGO_VERSIONS):
+                # Default: 5.2 (LTS)
+                yield RadioButton(v, value=(v == "5.2 (LTS)"), id=f"dj_{i}")
+
         yield Static("", id="error_msg", classes="error-label")
 
         with Horizontal(classes="button-row"):
@@ -188,11 +195,16 @@ class ProjectSetupScreen(Screen[dict]):  # type: ignore[type-arg]
         py_set = self.query_one("#py_version", RadioSet)
         python_version = PYTHON_VERSIONS[py_set.pressed_index]
 
+        dj_set = self.query_one("#dj_version", RadioSet)
+        django_label = DJANGO_VERSIONS[dj_set.pressed_index]
+        django_version = DJANGO_CONSTRAINTS[django_label]
+
         self.dismiss({
             "package_manager": package_manager,
             "service_name": service_name,
             "base_path": base_path,
             "python_version": python_version,
+            "django_version": django_version,
         })
 
 
@@ -339,7 +351,7 @@ class DDDScreen(Screen[dict]):  # type: ignore[type-arg]
         if event.button.id != "btn_next":
             return
 
-        module_name = str(self.query_one("#module_name", Input).value).strip()
+        module_name = _to_module_name(str(self.query_one("#module_name", Input).value))
         if not module_name:
             self.query_one("#error_msg", Static).update("Module name cannot be empty.")
             return
@@ -371,6 +383,7 @@ class ConfirmationScreen(Screen[bool]):
             f"  SERVICE_NAME    : {c['service_name']}\n"
             f"  BASE_PATH       : {c['base_path']}\n"
             f"  Python version  : {c['python_version']}\n"
+            f"  Django version  : {c['django_version']}\n"
             f"  Multi-tenant    : {c['multitenant']}\n"
             f"  Extras          : {extras_str}\n"
             f"  Module name     : {c['module_name']}\n"
@@ -435,6 +448,7 @@ class StartProjectApp(App[None]):
             "service_name": str(self._setup_data.get("service_name", "")),
             "base_path": str(self._setup_data.get("base_path", "")),
             "python_version": str(self._setup_data.get("python_version", "3.12")),
+            "django_version": str(self._setup_data.get("django_version", ">=5.2,<6.0")),
             "multitenant": bool(self._features_data.get("multitenant", False)),
             "extras": list(self._features_data.get("extras", [])),  # type: ignore[arg-type]
             "module_name": str(data.get("module_name", "")),

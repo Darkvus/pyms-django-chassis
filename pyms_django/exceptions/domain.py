@@ -5,7 +5,8 @@ and ``DomainException`` as building blocks for business-rule exceptions.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from dataclasses import field as dc_field
 from enum import Enum
 
 
@@ -54,7 +55,7 @@ class ErrorMessage:
     code: str = ""
     description: str = ""
     field: str = ""
-    details: list[ErrorDetail] = field(default_factory=list)
+    details: list[ErrorDetail] = dc_field(default_factory=list)
 
 
 class DomainException(Exception):
