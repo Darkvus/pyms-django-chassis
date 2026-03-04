@@ -3,6 +3,7 @@
 Converts ``DomainException``, DRF exceptions, and unexpected errors into a
 standardised JSON error response with an optional OpenTelemetry trace ID.
 """
+
 from __future__ import annotations
 
 import logging
@@ -35,6 +36,7 @@ def get_trace_id() -> str:
     """
     try:
         from opentelemetry import trace
+
         span = trace.get_current_span()
         span_context = span.get_span_context()
         if span_context.trace_id:
@@ -62,10 +64,12 @@ def process_error_message(field: str, errors: object) -> dict[str, Any]:
             if isinstance(error, dict):
                 details.append(error)
             else:
-                details.append({
-                    "code": str(error.code) if hasattr(error, "code") else "invalid",  # type: ignore[union-attr]
-                    "description": str(error),
-                })
+                details.append(
+                    {
+                        "code": str(error.code) if hasattr(error, "code") else "invalid",  # type: ignore[union-attr]
+                        "description": str(error),
+                    }
+                )
         return {"type": "INFO", "field": field, "details": details}
     return {"type": "ERROR", "code": "invalid", "description": str(errors)}
 

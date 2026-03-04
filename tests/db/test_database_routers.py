@@ -1,4 +1,5 @@
 """Tests for pyms_django.db.database_routers."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock

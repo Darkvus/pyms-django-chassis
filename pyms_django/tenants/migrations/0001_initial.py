@@ -1,4 +1,5 @@
 """Initial database migration for pyms-django-chassis tenants."""
+
 from __future__ import annotations
 
 import uuid
@@ -7,7 +8,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies: list[tuple[str, str]] = []
@@ -39,9 +39,14 @@ class Migration(migrations.Migration):
                 ("active", models.BooleanField(default=True)),
                 ("domain", models.CharField(max_length=253, unique=True)),
                 ("is_primary", models.BooleanField(default=True)),
-                ("tenant", models.ForeignKey(
-                    on_delete=models.deletion.CASCADE, related_name="domains", to="tenants.tenant",
-                )),
+                (
+                    "tenant",
+                    models.ForeignKey(
+                        on_delete=models.deletion.CASCADE,
+                        related_name="domains",
+                        to="tenants.tenant",
+                    ),
+                ),
             ],
             options={
                 "ordering": ["domain"],

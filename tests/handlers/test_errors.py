@@ -1,4 +1,5 @@
 """Tests for pyms_django.handlers.errors."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -78,18 +79,21 @@ class TestGetMessages:
     def test_domain_validation(self) -> None:
         class ValErr(DomainException):
             type = TypeException.VALIDATION
+
         _, code = get_messages(ValErr(code="invalid"))
         assert code == 400
 
     def test_domain_business(self) -> None:
         class BizErr(DomainException):
             type = TypeException.BUSINESS
+
         _, code = get_messages(BizErr(code="conflict"))
         assert code == 400
 
     def test_domain_permission(self) -> None:
         class PermErr(DomainException):
             type = TypeException.PERMISSION
+
         _, code = get_messages(PermErr(code="forbidden"))
         assert code == 403
 

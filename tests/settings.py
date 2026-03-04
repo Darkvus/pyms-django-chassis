@@ -1,7 +1,8 @@
 """
-    pyms-django-chassis
-    Test settings.
+pyms-django-chassis
+Test settings.
 """
+
 from __future__ import annotations
 
 SECRET_KEY = "test-secret-key-not-for-production"

@@ -1,4 +1,5 @@
 """Shared data types for the pyms-django CLI."""
+
 from __future__ import annotations
 
 from typing import TypedDict

@@ -1,4 +1,5 @@
 """Django admin mixins and utilities for pyms-django-chassis."""
+
 from __future__ import annotations
 
 import logging
@@ -39,6 +40,7 @@ class MigrateModelAdminMixin:
             if target_schema:
                 try:
                     from pyms_django.db.set_tenant_utils import set_tenant_schema
+
                     count = queryset.count()
                     objects = list(queryset)
                     set_tenant_schema(target_schema)
@@ -46,6 +48,7 @@ class MigrateModelAdminMixin:
                         obj.pk = None
                         obj.save()
                     from pyms_django.db.set_tenant_utils import set_public_schema
+
                     set_public_schema()
                     self.message_user(request, f"Successfully migrated {count} records to {target_schema}")  # type: ignore[attr-defined]
                 except Exception:
@@ -67,6 +70,7 @@ try:
 
     class ImportExportActionMixin(ImportMixin, ExportActionMixin):  # type: ignore[misc]
         """Combined import/export admin mixin with bulk support."""
+
         pass
 
     def modelresource_factory(model: type[Model], **kwargs: object) -> type[ModelResource]:
@@ -92,8 +96,10 @@ try:
         )
 
 except ImportError:
+
     class ImportExportActionMixin:  # type: ignore[no-redef]
         """Fallback when django-import-export is not installed."""
+
         pass
 
     def modelresource_factory(_model: type[Model], **_kwargs: object) -> type:  # type: ignore[misc]

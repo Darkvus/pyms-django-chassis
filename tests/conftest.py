@@ -1,4 +1,5 @@
 """Shared pytest fixtures and session-level DB setup."""
+
 from __future__ import annotations
 
 import pytest
@@ -9,6 +10,7 @@ def django_db_setup(django_db_setup: None, django_db_blocker: object) -> None:  
     """Extend the default DB setup with the SampleModel table used in model tests."""
     with django_db_blocker.unblock():  # type: ignore[attr-defined]
         from django.db import connection
+
         with connection.cursor() as cursor:
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS base_samplemodel (

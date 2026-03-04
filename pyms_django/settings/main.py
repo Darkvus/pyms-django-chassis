@@ -1,4 +1,5 @@
 """Default Django settings for pyms-django-chassis microservices."""
+
 from __future__ import annotations
 
 import os
@@ -49,6 +50,7 @@ INSTALLED_APPS: list[str] = [
 if MULTITENANT:
     try:
         import django_tenants  # noqa: F401
+
         INSTALLED_APPS = [
             "django_tenants",
             *SHARED_APPS,
@@ -62,6 +64,7 @@ if MULTITENANT:
 # Conditionally add drf-spectacular
 try:
     import drf_spectacular  # noqa: F401
+
     INSTALLED_APPS.append("drf_spectacular")
 except ImportError:
     pass
@@ -69,6 +72,7 @@ except ImportError:
 # Conditionally add import-export
 try:
     import import_export  # noqa: F401
+
     INSTALLED_APPS.append("import_export")
 except ImportError:
     pass
@@ -76,6 +80,7 @@ except ImportError:
 # Conditionally add debug toolbar
 try:
     import debug_toolbar  # noqa: F401
+
     if DEBUG:
         INSTALLED_APPS.append("debug_toolbar")
 except ImportError:
@@ -84,6 +89,7 @@ except ImportError:
 # Conditionally add django-extensions
 try:
     import django_extensions  # noqa: F401
+
     INSTALLED_APPS.append("django_extensions")
 except ImportError:
     pass
@@ -94,6 +100,7 @@ MIDDLEWARE: list[str] = list(SHARED_MIDDLEWARE)
 if MULTITENANT:
     try:
         import django_tenants  # noqa: F401
+
         MIDDLEWARE = [
             "django_tenants.middleware.main.TenantMainMiddleware",
             *MIDDLEWARE,
@@ -104,6 +111,7 @@ if MULTITENANT:
 if DEBUG:
     try:
         import debug_toolbar  # noqa: F401
+
         MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")
     except ImportError:
         pass
@@ -140,6 +148,7 @@ DATABASES: dict[str, dict[str, Any]] = {
 if MULTITENANT:
     try:
         import django_tenants  # noqa: F401
+
         DATABASES["default"]["ENGINE"] = "django_tenants.postgresql_backend"
     except ImportError:
         pass
@@ -207,6 +216,7 @@ REST_FRAMEWORK: dict[str, Any] = {
 # Add drf-spectacular schema class if available
 try:
     import drf_spectacular  # noqa: F401
+
     REST_FRAMEWORK["DEFAULT_SCHEMA_CLASS"] = "drf_spectacular.openapi.AutoSchema"
 except ImportError:
     pass
@@ -268,6 +278,7 @@ LOGGING: dict[str, Any] = {
 try:
     from opentelemetry.propagate import set_global_textmap
     from opentelemetry.propagators.b3 import B3Format
+
     set_global_textmap(B3Format())
 except ImportError:
     pass

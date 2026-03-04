@@ -1,4 +1,5 @@
 """Django admin registrations for multi-tenant models in pyms-django-chassis."""
+
 from __future__ import annotations
 
 from django.contrib import admin

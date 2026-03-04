@@ -1,4 +1,5 @@
 """Tests for pyms_django.middlewares.logging."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock

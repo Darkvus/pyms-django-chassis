@@ -1,4 +1,5 @@
 """Tests for pyms_django views."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -39,7 +40,7 @@ class TestVersioningView:
 
     def test_falls_back_when_pyproject_has_no_version(self, rf: APIRequestFactory, tmp_path: Path) -> None:
         pyproject = tmp_path / "pyproject.toml"
-        pyproject.write_text("[project]\nname = \"my-service\"\n")
+        pyproject.write_text('[project]\nname = "my-service"\n')
         request = rf.get("/version/")
         with patch("pyms_django.views.Path.cwd", return_value=tmp_path):
             view = VersioningView.as_view()
@@ -85,7 +86,7 @@ class TestDependenciesTreeView:
 
     def test_returns_empty_list_when_no_dependencies_key(self, rf: APIRequestFactory, tmp_path: Path) -> None:
         pyproject = tmp_path / "pyproject.toml"
-        pyproject.write_text("[project]\nname = \"svc\"\n")
+        pyproject.write_text('[project]\nname = "svc"\n')
         request = rf.get("/dependencies/")
         with patch("pyms_django.views.Path.cwd", return_value=tmp_path):
             view = DependenciesTreeView.as_view()

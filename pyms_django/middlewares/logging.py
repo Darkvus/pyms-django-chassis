@@ -1,4 +1,5 @@
 """Request logging and OpenTelemetry metrics middleware for pyms-django-chassis."""
+
 from __future__ import annotations
 
 import contextlib
@@ -35,6 +36,7 @@ def _get_counter() -> object | None:
     """
     try:
         from opentelemetry import metrics
+
         meter = metrics.get_meter(__name__)
         return meter.create_counter(
             name="microservice_http_response_status",
@@ -52,6 +54,7 @@ def _get_histogram() -> object | None:
     """
     try:
         from opentelemetry import metrics
+
         meter = metrics.get_meter(__name__)
         return meter.create_histogram(
             name="microservice_http_request_latency",

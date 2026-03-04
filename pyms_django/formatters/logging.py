@@ -1,4 +1,5 @@
 """JSON log formatter with OpenTelemetry trace context for pyms-django-chassis."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -49,6 +50,7 @@ class CustomJsonFormatter(JsonFormatter):
         except ImportError:
             # OTel not installed — fall back to context vars populated by TracingMiddleware
             from pyms_django.trace_context import span_id_var, trace_id_var
+
             tid = trace_id_var.get()
             if tid:
                 log_record["trace"] = tid

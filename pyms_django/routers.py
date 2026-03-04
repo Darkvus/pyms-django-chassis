@@ -3,6 +3,7 @@
 Provides ``ChassisRouter`` and ``ConfigViewSet`` for registering versioned
 DRF viewsets with a common prefix and optional sub-prefix support.
 """
+
 from __future__ import annotations
 
 from typing import TypeVar
@@ -97,11 +98,7 @@ class ChassisRouter(DefaultRouter):
             **kwargs: Additional arguments forwarded to ``DefaultRouter.register``.
         """
 
-        modified_prefix = (
-            f"{version}/{self.common_prefix}/{prefix}"
-            if self.common_prefix
-            else f"{version}/{prefix}"
-        )
+        modified_prefix = f"{version}/{self.common_prefix}/{prefix}" if self.common_prefix else f"{version}/{prefix}"
 
         if sub_prefix:
             modified_prefix += f"/{sub_prefix}"
@@ -109,7 +106,10 @@ class ChassisRouter(DefaultRouter):
         super().register(modified_prefix, viewset, basename, **kwargs)
 
     def register_multiple_viewsets(
-        self, prefix: str, config_viewsets: list[ConfigViewSet], **kwargs: object,
+        self,
+        prefix: str,
+        config_viewsets: list[ConfigViewSet],
+        **kwargs: object,
     ) -> None:
         """Register multiple viewsets sharing the same URL prefix.
 

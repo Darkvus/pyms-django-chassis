@@ -1,4 +1,5 @@
 """OpenTelemetry metrics provider configuration for pyms-django-chassis."""
+
 from __future__ import annotations
 
 import logging
@@ -7,7 +8,17 @@ from typing import Final
 logger = logging.getLogger(__name__)
 
 LATENCY_BUCKETS: Final[list[float]] = [
-    0, 50, 100, 250, 500, 750, 1000, 3000, 5000, 10000, 30000,
+    0,
+    50,
+    100,
+    250,
+    500,
+    750,
+    1000,
+    3000,
+    5000,
+    10000,
+    30000,
 ]
 
 
@@ -35,10 +46,12 @@ def configure_metrics_provider(
         from opentelemetry.sdk.metrics.view import ExplicitBucketHistogramAggregation, View
         from opentelemetry.sdk.resources import Resource
 
-        resource = Resource.create({
-            "service.name": service_name,
-            "service.version": artifact_version,
-        })
+        resource = Resource.create(
+            {
+                "service.name": service_name,
+                "service.version": artifact_version,
+            }
+        )
 
         exporter = OTLPMetricExporter(endpoint=collector_url)
 

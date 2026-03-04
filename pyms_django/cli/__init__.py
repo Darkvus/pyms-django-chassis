@@ -1,4 +1,5 @@
 """CLI package for pyms-django-chassis."""
+
 from __future__ import annotations
 
 import argparse
@@ -25,9 +26,11 @@ def main() -> None:
     args = parser.parse_args()
     if args.command == "startproject":
         from .startproject import run_startproject
+
         run_startproject(args.project_name)
     elif args.command == "folderddd":
         from pyms_django.base.management.commands.folderddd import run_folderddd
+
         run_folderddd(args.module, args.actor)
     else:
         parser.print_help()

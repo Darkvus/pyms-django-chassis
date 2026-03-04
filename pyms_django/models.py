@@ -3,6 +3,7 @@
 Provides soft-delete support, UUID primary keys, and timestamp fields
 via ``BaseModel`` and ``BaseModelReplicatedData``.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -148,6 +149,7 @@ class BaseModel(models.Model):
         )
         if getattr(cls._meta, "active_signals_bulk_operations", False):
             from django.db.models.signals import post_save
+
             for obj in result:
                 post_save.send(sender=cls, instance=obj, created=True)
         return result
@@ -175,6 +177,7 @@ class BaseModel(models.Model):
         result = super().bulk_update(objs, fields, batch_size=batch_size)
         if getattr(cls._meta, "active_signals_bulk_operations", False):
             from django.db.models.signals import post_save
+
             for obj in objs:
                 post_save.send(sender=cls, instance=obj, created=False)
         return result

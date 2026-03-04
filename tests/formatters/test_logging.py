@@ -1,4 +1,5 @@
 """Tests for pyms_django.formatters.logging."""
+
 from __future__ import annotations
 
 import logging
@@ -10,8 +11,13 @@ from pyms_django.trace_context import span_id_var, trace_id_var
 
 def _make_record(msg: str = "test", level: int = logging.INFO) -> logging.LogRecord:
     return logging.LogRecord(
-        name="test", level=level, pathname="", lineno=0,
-        msg=msg, args=(), exc_info=None,
+        name="test",
+        level=level,
+        pathname="",
+        lineno=0,
+        msg=msg,
+        args=(),
+        exc_info=None,
     )
 
 

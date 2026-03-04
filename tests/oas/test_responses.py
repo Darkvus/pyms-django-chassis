@@ -1,4 +1,5 @@
 """Tests for pyms_django.oas.responses."""
+
 from __future__ import annotations
 
 from pyms_django.oas.responses import BAD_REQUEST_RESPONSE, INTERNAL_SERVER_ERROR_RESPONSE

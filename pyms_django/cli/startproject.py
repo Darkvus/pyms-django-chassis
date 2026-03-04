@@ -1,4 +1,5 @@
 """Interactive startproject command for pyms-django-chassis."""
+
 from __future__ import annotations
 
 import os
@@ -288,7 +289,7 @@ WORKDIR /app
 COPY pyproject.toml poetry.lock ./
 RUN poetry install --no-dev"""
 
-    content = f'''# --- Builder stage ---
+    content = f"""# --- Builder stage ---
 FROM python:{python_version}-slim AS builder
 {install_cmd}
 
@@ -301,7 +302,7 @@ COPY . .
 RUN python manage.py collectstatic --noinput
 EXPOSE 8000
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
-'''
+"""
     (project_dir / "Dockerfile").write_text(content, encoding="utf-8")
 
 
@@ -311,27 +312,31 @@ def _create_docker_compose(
     multitenant: bool,
 ) -> None:
     """Create docker-compose.yml."""
-    services = '''services:
+    services = """services:
   app:
     build: .
     ports:
       - "8000:8000"
-    env_file: .env'''
+    env_file: .env"""
 
     if multitenant:
-        services += '''
+        services += (
+            """
     depends_on:
       - db
 
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: ''' + project_name + '''
+      POSTGRES_DB: """
+            + project_name
+            + """
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
-'''
+"""
+        )
     else:
         services += "\n"
 
@@ -346,18 +351,18 @@ def _create_env_example(
     project_name: str,
 ) -> None:
     """Create .env.example."""
-    content = f'''DJANGO_SETTINGS_MODULE=config.settings.base
+    content = f"""DJANGO_SETTINGS_MODULE=config.settings.base
 SERVICE_NAME={service_name}
 BASE_PATH={base_path}
-MULTITENANT={"true" if multitenant else "false"}'''
+MULTITENANT={"true" if multitenant else "false"}"""
 
     if multitenant:
-        content += f'''
+        content += f"""
 DATABASE_HOST=localhost
 DATABASE_PORT=5432
 DATABASE_USER=postgres
 DATABASE_PASSWORD=postgres
-DATABASE_NAME={project_name}'''
+DATABASE_NAME={project_name}"""
 
     content += "\n"
     (project_dir / ".env.example").write_text(content, encoding="utf-8")
@@ -365,7 +370,7 @@ DATABASE_NAME={project_name}'''
 
 def _create_gitignore(project_dir: Path) -> None:
     """Create .gitignore."""
-    content = '''.venv/
+    content = """.venv/
 __pycache__/
 .env
 *.pyc
@@ -378,37 +383,37 @@ staticfiles/
 db.sqlite3
 .coverage
 htmlcov/
-'''
+"""
     (project_dir / ".gitignore").write_text(content, encoding="utf-8")
 
 
 def _create_pre_commit_config(project_dir: Path) -> None:
     """Create .pre-commit-config.yaml."""
-    content = '''repos:
+    content = """repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.4
     hooks:
       - id: ruff
         args: [--fix]
       - id: ruff-format
-'''
+"""
     (project_dir / ".pre-commit-config.yaml").write_text(content, encoding="utf-8")
 
 
 def _create_ruff_toml(project_dir: Path) -> None:
     """Create ruff.toml."""
-    content = '''target-version = "py311"
+    content = """target-version = "py311"
 line-length = 120
 
 [lint]
 select = ["E", "F", "W", "I", "N", "UP", "ANN", "B", "A", "COM", "C4", "PT", "RET", "SIM", "TCH", "ARG", "PTH", "ERA"]
-'''
+"""
     (project_dir / "ruff.toml").write_text(content, encoding="utf-8")
 
 
 def _create_readme(project_dir: Path, project_name: str) -> None:
     """Create README.md."""
-    content = f'''# {project_name}
+    content = f"""# {project_name}
 
 Microservice built with [pyms-django-chassis](https://github.com/pyms/pyms-django-chassis).
 
@@ -424,7 +429,7 @@ uv run python manage.py migrate
 # Start dev server
 uv run python manage.py runserver
 ```
-'''
+"""
     (project_dir / "README.md").write_text(content, encoding="utf-8")
 
 
@@ -459,6 +464,7 @@ def _collect_config(project_name: str) -> ProjectConfig | None:
     """Try TUI wizard; fall back to plain prompts if Textual is not installed."""
     try:
         from pyms_django.cli.tui import run_tui_wizard
+
         return run_tui_wizard(project_name)
     except ImportError:
         print("[pyms-django] Textual not installed. pip install 'pyms-django-chassis[tui]'")  # noqa: T201
@@ -486,11 +492,19 @@ def _generate_project(project_name: str, config: ProjectConfig) -> None:
 
     if config["package_manager"] == "uv":
         _create_pyproject_uv(
-            project_dir, project_name, config["python_version"], config["django_version"], config["extras"],
+            project_dir,
+            project_name,
+            config["python_version"],
+            config["django_version"],
+            config["extras"],
         )
     else:
         _create_pyproject_poetry(
-            project_dir, project_name, config["python_version"], config["django_version"], config["extras"],
+            project_dir,
+            project_name,
+            config["python_version"],
+            config["django_version"],
+            config["extras"],
         )
 
     _create_dockerfile(project_dir, config["python_version"], config["package_manager"])
@@ -505,6 +519,7 @@ def _generate_project(project_name: str, config: ProjectConfig) -> None:
     original_dir = Path.cwd()
     os.chdir(project_dir)
     from pyms_django.base.management.commands.folderddd import run_folderddd
+
     run_folderddd(config["module_name"], actor)
     os.chdir(original_dir)
 

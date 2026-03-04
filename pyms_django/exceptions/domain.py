@@ -3,6 +3,7 @@
 Provides ``TypeException``, ``LogLevel``, ``ErrorDetail``, ``ErrorMessage``,
 and ``DomainException`` as building blocks for business-rule exceptions.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -12,6 +13,7 @@ from enum import StrEnum
 
 class TypeException(StrEnum):
     """Enum of domain exception categories."""
+
     VALIDATION = "VALIDATION"
     BUSINESS = "BUSINESS"
     PERMISSION = "PERMISSION"
@@ -20,6 +22,7 @@ class TypeException(StrEnum):
 
 class LogLevel(StrEnum):
     """Enum of log levels used when a ``DomainException`` is logged."""
+
     DEBUG = "debug"
     INFO = "info"
     WARNING = "warning"
@@ -79,6 +82,7 @@ class DomainException(Exception):  # noqa: N818
                 type = TypeException.BUSINESS
                 log_level = LogLevel.WARNING
     """
+
     code: str = "domain_error"
     description: str = ""
     type: TypeException = TypeException.TECHNICAL
@@ -107,9 +111,17 @@ class DomainException(Exception):  # noqa: N818
             List of ``ErrorMessage`` instances describing the exception.
         """
         if self.details:
-            return [ErrorMessage(
-                type="ERROR", field=self.field, details=self.details,
-            )]
-        return [ErrorMessage(
-            type="ERROR", code=self.code, description=self.description,
-        )]
+            return [
+                ErrorMessage(
+                    type="ERROR",
+                    field=self.field,
+                    details=self.details,
+                )
+            ]
+        return [
+            ErrorMessage(
+                type="ERROR",
+                code=self.code,
+                description=self.description,
+            )
+        ]

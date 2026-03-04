@@ -1,4 +1,5 @@
 """Shared Django app list for pyms-django-chassis projects."""
+
 from __future__ import annotations
 
 from typing import Final

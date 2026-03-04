@@ -1,4 +1,5 @@
 """Django app configuration for the pyms-django-chassis tenants module."""
+
 from __future__ import annotations
 
 from django.apps import AppConfig

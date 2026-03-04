@@ -1,4 +1,5 @@
 """Tests for pyms_django BaseModel (soft-delete, restore, managers)."""
+
 from __future__ import annotations
 
 import uuid
@@ -15,7 +16,6 @@ class SampleModel(BaseModel):
 
     class Meta:
         app_label = "base"
-
 
 
 @pytest.mark.django_db

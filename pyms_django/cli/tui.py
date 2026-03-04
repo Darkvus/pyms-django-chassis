@@ -1,4 +1,5 @@
 """Interactive TUI wizard for pyms-django startproject using Textual."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Final
@@ -19,14 +20,14 @@ EXTRAS: Final[list[str]] = ["monitoring", "aws", "tenant", "docs", "restql", "im
 SELECTABLE_EXTRAS: Final[list[str]] = [e for e in EXTRAS if e != "all"]
 
 EXTRAS_INFO: Final[dict[str, str]] = {
-    "monitoring":    "OpenTelemetry tracing & OTLP export",
-    "aws":           "AWS SDK — Secrets Manager, S3, etc.",
-    "tenant":        "Schema-based tenant isolation (django-tenants + PostgreSQL)",
-    "docs":          "OpenAPI / Swagger docs (drf-spectacular)",
-    "restql":        "Dynamic field filtering via query params",
+    "monitoring": "OpenTelemetry tracing & OTLP export",
+    "aws": "AWS SDK — Secrets Manager, S3, etc.",
+    "tenant": "Schema-based tenant isolation (django-tenants + PostgreSQL)",
+    "docs": "OpenAPI / Swagger docs (drf-spectacular)",
+    "restql": "Dynamic field filtering via query params",
     "import-export": "CSV & XLSX import / export",
-    "dev-tools":     "Debug toolbar & django-extensions",
-    "all":           "All of the above, bundled",
+    "dev-tools": "Debug toolbar & django-extensions",
+    "all": "All of the above, bundled",
 }
 
 _COMMON_CSS = """
@@ -201,13 +202,15 @@ class ProjectSetupScreen(Screen[dict]):  # type: ignore[type-arg]
         django_label = DJANGO_VERSIONS[dj_set.pressed_index]
         django_version = DJANGO_CONSTRAINTS[django_label]
 
-        self.dismiss({
-            "package_manager": package_manager,
-            "service_name": service_name,
-            "base_path": base_path,
-            "python_version": python_version,
-            "django_version": django_version,
-        })
+        self.dismiss(
+            {
+                "package_manager": package_manager,
+                "service_name": service_name,
+                "base_path": base_path,
+                "python_version": python_version,
+                "django_version": django_version,
+            }
+        )
 
 
 class FeaturesScreen(Screen[dict]):  # type: ignore[type-arg]
@@ -255,10 +258,7 @@ class FeaturesScreen(Screen[dict]):  # type: ignore[type-arg]
         yield Footer()
 
     def _update_counter(self) -> None:
-        count = sum(
-            1 for e in SELECTABLE_EXTRAS
-            if self.query_one(f"#extra_{e.replace('-', '_')}", Checkbox).value
-        )
+        count = sum(1 for e in SELECTABLE_EXTRAS if self.query_one(f"#extra_{e.replace('-', '_')}", Checkbox).value)
         self.query_one("#extras_counter", Static).update(f"{count} / {len(SELECTABLE_EXTRAS)} selected")
 
     def on_checkbox_changed(self, event: Checkbox.Changed) -> None:
@@ -273,8 +273,7 @@ class FeaturesScreen(Screen[dict]):  # type: ignore[type-arg]
             else:
                 # If all individual are checked, auto-check "all"; otherwise uncheck it
                 all_checked = all(
-                    self.query_one(f"#extra_{e.replace('-', '_')}", Checkbox).value
-                    for e in SELECTABLE_EXTRAS
+                    self.query_one(f"#extra_{e.replace('-', '_')}", Checkbox).value for e in SELECTABLE_EXTRAS
                 )
                 self.query_one("#extra_all", Checkbox).value = all_checked
         finally:
@@ -296,8 +295,7 @@ class FeaturesScreen(Screen[dict]):  # type: ignore[type-arg]
             selected_extras: list[str] = ["all"]
         else:
             selected_extras = [
-                e for e in SELECTABLE_EXTRAS
-                if self.query_one(f"#extra_{e.replace('-', '_')}", Checkbox).value
+                e for e in SELECTABLE_EXTRAS if self.query_one(f"#extra_{e.replace('-', '_')}", Checkbox).value
             ]
 
         if not selected_extras:
@@ -305,10 +303,12 @@ class FeaturesScreen(Screen[dict]):  # type: ignore[type-arg]
             return
 
         self.query_one("#error_msg", Static).update("")
-        self.dismiss({
-            "multitenant": multitenant,
-            "extras": selected_extras,
-        })
+        self.dismiss(
+            {
+                "multitenant": multitenant,
+                "extras": selected_extras,
+            }
+        )
 
 
 class DDDScreen(Screen[dict]):  # type: ignore[type-arg]

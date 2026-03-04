@@ -1,4 +1,5 @@
 """Shared trace context variables for pyms-django-chassis."""
+
 from __future__ import annotations
 
 from contextvars import ContextVar

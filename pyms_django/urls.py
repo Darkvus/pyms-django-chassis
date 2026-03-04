@@ -3,6 +3,7 @@
 Registers health-check, version, dependencies, and optionally
 schema (drf-spectacular), admin, and debug toolbar endpoints.
 """
+
 from __future__ import annotations
 
 from django.conf import settings
@@ -74,12 +75,14 @@ for app_urls, app_base_path in local_apps:
 # Conditional admin
 if getattr(settings, "ADMIN_ENABLED", False):
     from django.contrib import admin
+
     urlpatterns.append(path(build_path("admin"), admin.site.urls))
 
 # Conditional debug toolbar
 if getattr(settings, "DEBUG", False):
     try:
         import debug_toolbar
+
         urlpatterns.append(path("__debug__/", include(debug_toolbar.urls)))
     except ImportError:
         pass

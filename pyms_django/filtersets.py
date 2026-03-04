@@ -1,4 +1,5 @@
 """Base FilterSet for pyms-django-chassis microservices."""
+
 from __future__ import annotations
 
 from django_filters import FilterSet

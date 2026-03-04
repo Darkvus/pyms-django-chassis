@@ -1,4 +1,5 @@
 """Tests for pyms_django.oas.parameters."""
+
 from __future__ import annotations
 
 from pyms_django.oas.parameters import HEADER_USER_ID_PARAM

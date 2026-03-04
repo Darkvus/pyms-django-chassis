@@ -1,4 +1,5 @@
 """Service version resolution utilities for pyms-django-chassis."""
+
 from __future__ import annotations
 
 from pathlib import Path

@@ -1,4 +1,5 @@
 """Base DRF serializers and error-response serializers for pyms-django-chassis."""
+
 from __future__ import annotations
 
 import logging
@@ -65,12 +66,14 @@ class BaseSerializer(serializers.ModelSerializer):  # type: ignore[type-arg]
 
 class BadRequestDetailSerializer(serializers.Serializer):  # type: ignore[type-arg]
     """Serializer for error detail."""
+
     code = serializers.CharField()
     description = serializers.CharField()
 
 
 class BadRequestMessageSerializer(serializers.Serializer):  # type: ignore[type-arg]
     """Serializer for error message."""
+
     type = serializers.CharField()
     field = serializers.CharField(required=False, default="")
     code = serializers.CharField(required=False, default="")
@@ -80,12 +83,14 @@ class BadRequestMessageSerializer(serializers.Serializer):  # type: ignore[type-
 
 class BadRequestResponseSerializer(serializers.Serializer):  # type: ignore[type-arg]
     """Serializer for 400 Bad Request responses."""
+
     messages = BadRequestMessageSerializer(many=True)
     trace_id = serializers.CharField()
 
 
 class ServerInternalErrorMessageSerializer(serializers.Serializer):  # type: ignore[type-arg]
     """Serializer for 500 error message."""
+
     type = serializers.CharField(default="ERROR")
     code = serializers.CharField(default="unknown_error")
     description = serializers.CharField(default="Internal Server Error")
@@ -93,12 +98,14 @@ class ServerInternalErrorMessageSerializer(serializers.Serializer):  # type: ign
 
 class ServerInternalErrorResponseSerializer(serializers.Serializer):  # type: ignore[type-arg]
     """Serializer for 500 Internal Server Error responses."""
+
     messages = ServerInternalErrorMessageSerializer(many=True)
     trace_id = serializers.CharField()
 
 
 class PaginateResponseSerializer(serializers.Serializer):  # type: ignore[type-arg]
     """Serializer for paginated responses."""
+
     count = serializers.IntegerField()
     next = serializers.URLField(allow_null=True)
     previous = serializers.URLField(allow_null=True)
@@ -121,6 +128,7 @@ def dynamic_serializer(model_name: type, expand: bool = False) -> type:
     bases: list[type] = []
     try:
         from django_restql.mixins import DynamicFieldsMixin
+
         bases.append(DynamicFieldsMixin)
     except ImportError:
         pass

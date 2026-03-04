@@ -1,4 +1,5 @@
 """API views for service metadata endpoints in pyms-django-chassis."""
+
 from __future__ import annotations
 
 import logging

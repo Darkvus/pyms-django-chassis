@@ -1,4 +1,5 @@
 """Tenant schema switching utilities for pyms-django-chassis."""
+
 from __future__ import annotations
 
 import logging
@@ -17,6 +18,7 @@ def set_tenant_schema(schema_name: str) -> None:
     """
     try:
         from django.db import connection
+
         connection.set_schema(schema_name)
         logger.debug("Tenant schema set to: %s", schema_name)
     except Exception:

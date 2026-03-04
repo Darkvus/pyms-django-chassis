@@ -1,4 +1,5 @@
 """Built-in configuration ViewSet for pyms-django-chassis."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
@@ -25,6 +26,7 @@ class ConfigViewSet(viewsets.ViewSet):
             JSON response with ``service_name``, ``base_path``, and ``multitenant``.
         """
         from django.conf import settings
+
         config_data: dict[str, Any] = {
             "service_name": getattr(settings, "SERVICE_NAME", "unknown"),
             "base_path": getattr(settings, "BASE_PATH", ""),

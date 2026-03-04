@@ -1,4 +1,5 @@
 """Spatialite backend compatibility fix for pyms-django-chassis."""
+
 from __future__ import annotations
 
 import logging

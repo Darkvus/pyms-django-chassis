@@ -1,4 +1,5 @@
 """Database router for directing reads to a read replica in pyms-django-chassis."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
